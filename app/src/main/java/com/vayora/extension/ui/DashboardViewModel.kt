@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.vayora.extension.cloud.DriveStateStore
 import com.vayora.extension.data.SecurityEvent
 import com.vayora.extension.data.SecurityRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,26 +22,42 @@ data class DashboardState(
     val lastSync: Long? = null
 )
 
-class DashboardViewModel(repository: SecurityRepository) : ViewModel() {
+class DashboardViewModel(
+    repository: SecurityRepository,
+    driveStore: DriveStateStore
+) : ViewModel() {
 
     val state: StateFlow<DashboardState> = combine(
         repository.lastEvent,
         repository.eventCount,
         repository.photoCount,
-        repository.pendingCount
-    ) { last, events, photos, pending ->
+        repository.pendingCount,
+        driveStore.state
+    ) { last, events, photos, pending, drive ->
+        val status = if (drive.email == null) {
+            "Not connected"
+        } else if (drive.lastError != null) {
+            "Needs attention"
+        } else {
+            "Connected"
+        }
         DashboardState(
             lastEvent = last,
             eventCount = events,
             photoCount = photos,
-            pendingUploads = pending
+            pendingUploads = pending,
+            driveStatus = status,
+            lastSync = drive.lastSync
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardState())
 
     companion object {
-        fun factory(repository: SecurityRepository): ViewModelProvider.Factory =
+        fun factory(
+            repository: SecurityRepository,
+            driveStore: DriveStateStore
+        ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { DashboardViewModel(repository) }
+                initializer { DashboardViewModel(repository, driveStore) }
             }
     }
 }

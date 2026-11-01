@@ -2,6 +2,7 @@ package com.vayora.extension.data
 
 import java.util.Calendar
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 class SecurityRepository(private val db: VayoraDatabase) {
 
@@ -9,7 +10,10 @@ class SecurityRepository(private val db: VayoraDatabase) {
     val allEvents: Flow<List<SecurityEvent>> = db.eventDao().observeAll()
     val eventCount: Flow<Int> = db.eventDao().observeCount()
     val photoCount: Flow<Int> = db.evidenceDao().observeCount()
-    val pendingCount: Flow<Int> = db.evidenceDao().observePendingCount()
+    val pendingCount: Flow<Int> = combine(
+        db.evidenceDao().observePendingCount(),
+        db.eventDao().observeUnsyncedCount()
+    ) { photos, events -> photos + events }
 
     suspend fun recordEvent(
         type: String,
@@ -29,4 +33,19 @@ class SecurityRepository(private val db: VayoraDatabase) {
             )
         )
     }
+
+    suspend fun unsyncedEvents(): List<SecurityEvent> = db.eventDao().getUnsynced()
+
+    suspend fun markEventSynced(id: Long) = db.eventDao().markSynced(id)
+
+    suspend fun eventById(id: Long): SecurityEvent? = db.eventDao().getById(id)
+
+    suspend fun pendingPhotos(): List<EvidencePhoto> = db.evidenceDao().getPending()
+
+    suspend fun markPhotoSynced(id: Long, driveId: String) =
+        db.evidenceDao().markSynced(id, driveId)
+
+    suspend fun markPhotoFailed(id: Long) = db.evidenceDao().markFailed(id)
+
+    suspend fun addPhoto(photo: EvidencePhoto): Long = db.evidenceDao().insert(photo)
 }

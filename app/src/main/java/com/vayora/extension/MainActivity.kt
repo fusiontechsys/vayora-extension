@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import com.vayora.extension.ui.AuthViewModel
+import com.vayora.extension.ui.CloudViewModel
 import com.vayora.extension.ui.DashboardViewModel
 import com.vayora.extension.ui.VayoraRoot
 import com.vayora.extension.ui.theme.VayoraTheme
@@ -13,11 +14,16 @@ import com.vayora.extension.ui.theme.VayoraTheme
 class MainActivity : ComponentActivity() {
 
     private val dashboardViewModel: DashboardViewModel by viewModels {
-        DashboardViewModel.factory((application as VayoraApp).repository)
+        val app = application as VayoraApp
+        DashboardViewModel.factory(app.repository, app.driveState)
     }
 
     private val authViewModel: AuthViewModel by viewModels {
         AuthViewModel.factory((application as VayoraApp).passcodeManager)
+    }
+
+    private val cloudViewModel: CloudViewModel by viewModels {
+        CloudViewModel.factory(application as VayoraApp)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,7 +34,7 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             VayoraTheme {
-                VayoraRoot(dashboardViewModel, authViewModel)
+                VayoraRoot(dashboardViewModel, authViewModel, cloudViewModel)
             }
         }
     }

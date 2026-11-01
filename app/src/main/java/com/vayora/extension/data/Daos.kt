@@ -18,6 +18,18 @@ interface EventDao {
 
     @Query("SELECT COUNT(*) FROM security_events")
     fun observeCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM security_events WHERE synced = 0")
+    fun observeUnsyncedCount(): Flow<Int>
+
+    @Query("SELECT * FROM security_events WHERE synced = 0 ORDER BY timestamp ASC")
+    suspend fun getUnsynced(): List<SecurityEvent>
+
+    @Query("UPDATE security_events SET synced = 1 WHERE id = :id")
+    suspend fun markSynced(id: Long)
+
+    @Query("SELECT * FROM security_events WHERE id = :id")
+    suspend fun getById(id: Long): SecurityEvent?
 }
 
 @Dao
@@ -28,6 +40,18 @@ interface EvidenceDao {
     @Query("SELECT COUNT(*) FROM evidence_photos")
     fun observeCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM evidence_photos WHERE syncState != 'SYNCED'")
+    @Query("SELECT COUNT(*) FROM evidence_photos WHERE syncState = 'PENDING'")
     fun observePendingCount(): Flow<Int>
+
+    @Query("SELECT * FROM evidence_photos WHERE syncState = 'PENDING' ORDER BY capturedAt ASC")
+    suspend fun getPending(): List<EvidencePhoto>
+
+    @Query(
+        "UPDATE evidence_photos SET syncState = 'SYNCED', driveFileId = :driveId, " +
+            "localPath = NULL WHERE id = :id"
+    )
+    suspend fun markSynced(id: Long, driveId: String)
+
+    @Query("UPDATE evidence_photos SET syncState = 'FAILED' WHERE id = :id")
+    suspend fun markFailed(id: Long)
 }

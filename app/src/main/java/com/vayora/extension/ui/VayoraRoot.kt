@@ -27,7 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun VayoraRoot(dashboard: DashboardViewModel, auth: AuthViewModel) {
+fun VayoraRoot(
+    dashboard: DashboardViewModel,
+    auth: AuthViewModel,
+    cloud: CloudViewModel
+) {
     val authUi by auth.ui.collectAsStateWithLifecycle()
 
     Surface(
@@ -36,7 +40,7 @@ fun VayoraRoot(dashboard: DashboardViewModel, auth: AuthViewModel) {
     ) {
         Box(Modifier.systemBarsPadding()) {
             if (authUi.stage == Stage.UNLOCKED) {
-                DashboardHost(dashboard, auth)
+                DashboardHost(dashboard, auth, cloud)
             } else {
                 LockScreen(authUi, auth)
             }
@@ -45,7 +49,11 @@ fun VayoraRoot(dashboard: DashboardViewModel, auth: AuthViewModel) {
 }
 
 @Composable
-private fun DashboardHost(dashboard: DashboardViewModel, auth: AuthViewModel) {
+private fun DashboardHost(
+    dashboard: DashboardViewModel,
+    auth: AuthViewModel,
+    cloud: CloudViewModel
+) {
     val state by dashboard.state.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val section = Sections.firstOrNull { it.title == selected }
@@ -64,6 +72,10 @@ private fun DashboardHost(dashboard: DashboardViewModel, auth: AuthViewModel) {
             onChange = { auth.startChange() },
             onLockNow = { auth.lock() }
         )
+    } else if (section.title == "Google Account") {
+        GoogleAccountScreen(cloud) { selected = null }
+    } else if (section.title == "Cloud Evidence") {
+        CloudEvidenceScreen(cloud) { selected = null }
     } else {
         SectionScreen(section) { selected = null }
     }
