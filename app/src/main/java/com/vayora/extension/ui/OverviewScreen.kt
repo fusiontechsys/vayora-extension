@@ -11,9 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,20 +35,29 @@ private fun formatTime(ms: Long): String =
     SimpleDateFormat("dd MMM yyyy, HH:mm:ss", Locale.getDefault()).format(Date(ms))
 
 @Composable
-fun OverviewScreen(state: DashboardState, onOpen: (Section) -> Unit) {
+fun OverviewScreen(
+    state: DashboardState,
+    onOpen: (Section) -> Unit,
+    onLock: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Column {
-                Text(
-                    "VAYORA EXTENSION",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Blue300
-                )
-                Text("Security Overview", style = MaterialTheme.typography.headlineMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "VAYORA EXTENSION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Blue300
+                    )
+                    Text("Security Overview", style = MaterialTheme.typography.headlineMedium)
+                }
+                IconButton(onClick = onLock) {
+                    Icon(Icons.Filled.Lock, contentDescription = "Lock now", tint = Blue500)
+                }
             }
         }
         item { LastEventCard(state.lastEvent) }

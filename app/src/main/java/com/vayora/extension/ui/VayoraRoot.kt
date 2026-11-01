@@ -27,24 +27,45 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun VayoraRoot(viewModel: DashboardViewModel) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    var selected by rememberSaveable { mutableStateOf<String?>(null) }
-    val section = Sections.firstOrNull { it.title == selected }
-
-    BackHandler(enabled = section != null) { selected = null }
+fun VayoraRoot(dashboard: DashboardViewModel, auth: AuthViewModel) {
+    val authUi by auth.ui.collectAsStateWithLifecycle()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Box(Modifier.systemBarsPadding()) {
-            if (section == null) {
-                OverviewScreen(state) { selected = it.title }
+            if (authUi.stage == Stage.UNLOCKED) {
+                DashboardHost(dashboard, auth)
             } else {
-                SectionScreen(section) { selected = null }
+                LockScreen(authUi, auth)
             }
         }
+    }
+}
+
+@Composable
+private fun DashboardHost(dashboard: DashboardViewModel, auth: AuthViewModel) {
+    val state by dashboard.state.collectAsStateWithLifecycle()
+    var selected by rememberSaveable { mutableStateOf<String?>(null) }
+    val section = Sections.firstOrNull { it.title == selected }
+
+    BackHandler(enabled = section != null) { selected = null }
+
+    if (section == null) {
+        OverviewScreen(
+            state = state,
+            onOpen = { selected = it.title },
+            onLock = { auth.lock() }
+        )
+    } else if (section.title == "Passcode Settings") {
+        PasscodeSettingsScreen(
+            onBack = { selected = null },
+            onChange = { auth.startChange() },
+            onLockNow = { auth.lock() }
+        )
+    } else {
+        SectionScreen(section) { selected = null }
     }
 }
 

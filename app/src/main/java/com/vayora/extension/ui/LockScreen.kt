@@ -1,0 +1,208 @@
+package com.vayora.extension.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.vayora.extension.ui.theme.Blue300
+import com.vayora.extension.ui.theme.Blue500
+import com.vayora.extension.ui.theme.Navy600
+
+private fun formatCountdown(seconds: Long): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return "$m:${s.toString().padStart(2, '0')}"
+}
+
+@Composable
+fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
+    var showForgot by remember { mutableStateOf(false) }
+
+    val titleAndSubtitle: Pair<String, String> = when (ui.stage) {
+        Stage.SETUP -> "Create your passcode" to "Choose a six-digit passcode"
+        Stage.SETUP_CONFIRM -> "Confirm your passcode" to "Enter the same six digits again"
+        Stage.LOCKED -> "Enter passcode" to "Vayora Extension is locked"
+        Stage.CHANGE_CURRENT -> "Current passcode" to "Enter your current passcode"
+        Stage.CHANGE_NEW -> "New passcode" to "Choose a new six-digit passcode"
+        Stage.CHANGE_CONFIRM -> "Confirm new passcode" to "Enter the new digits again"
+        Stage.UNLOCKED -> "" to ""
+    }
+
+    val lockText: String? = if (ui.lockSeconds > 0) {
+        "Too many attempts. Try again in ${formatCountdown(ui.lockSeconds)}"
+    } else {
+        null
+    }
+    val attemptsText: String? = ui.attemptsLeft?.let { "$it attempts remaining before lockout" }
+    val info: String = lockText ?: ui.message ?: attemptsText ?: titleAndSubtitle.second
+    val isError = lockText != null || ui.message != null
+    val infoColor = if (isError) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(24.dp))
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(Navy600),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Filled.Lock,
+                contentDescription = null,
+                tint = Blue500,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(
+            "VAYORA EXTENSION",
+            style = MaterialTheme.typography.labelMedium,
+            color = Blue300
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(titleAndSubtitle.first, style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            info,
+            style = MaterialTheme.typography.bodyMedium,
+            color = infoColor,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.heightIn(min = 40.dp)
+        )
+        Spacer(Modifier.height(20.dp))
+        PinDots(ui.filled)
+        Spacer(Modifier.height(28.dp))
+        Keypad(
+            enabled = !ui.busy && ui.lockSeconds <= 0,
+            onDigit = { auth.onDigit(it) },
+            onDelete = { auth.onDelete() }
+        )
+        Spacer(Modifier.height(12.dp))
+        when (ui.stage) {
+            Stage.LOCKED -> TextButton(onClick = { showForgot = true }) {
+                Text("Forgot passcode?")
+            }
+            Stage.CHANGE_CURRENT,
+            Stage.CHANGE_NEW,
+            Stage.CHANGE_CONFIRM -> TextButton(onClick = { auth.cancelChange() }) {
+                Text("Cancel")
+            }
+            else -> Unit
+        }
+    }
+
+    if (showForgot) {
+        AlertDialog(
+            onDismissRequest = { showForgot = false },
+            confirmButton = {
+                TextButton(onClick = { showForgot = false }) { Text("OK") }
+            },
+            title = { Text("Forgot passcode") },
+            text = {
+                Text(
+                    "Recovery verifies your registered Google account and asks for an " +
+                        "extra confirmation before you can choose a new passcode. It becomes " +
+                        "available once Google sign-in and recovery are set up in an " +
+                        "upcoming update."
+                )
+            }
+        )
+    }
+}
+
+@Composable
+private fun PinDots(filled: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        repeat(6) { index ->
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .background(if (index < filled) Blue500 else Navy600)
+            )
+        }
+    }
+}
+
+@Composable
+private fun Keypad(
+    enabled: Boolean,
+    onDigit: (Char) -> Unit,
+    onDelete: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        listOf("123", "456", "789").forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                row.forEach { ch ->
+                    KeyButton(ch.toString(), enabled) { onDigit(ch) }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Spacer(Modifier.size(72.dp))
+            KeyButton("0", enabled) { onDigit('0') }
+            KeyButton("\u232B", enabled) { onDelete() }
+        }
+    }
+}
+
+@Composable
+private fun KeyButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            fontSize = 26.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
