@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import com.vayora.extension.ui.AuthViewModel
 import com.vayora.extension.ui.CloudViewModel
 import com.vayora.extension.ui.DashboardViewModel
+import com.vayora.extension.ui.GalleryViewModel
 import com.vayora.extension.ui.VayoraRoot
 import com.vayora.extension.ui.theme.VayoraTheme
 
@@ -26,6 +27,10 @@ class MainActivity : ComponentActivity() {
         CloudViewModel.factory(application as VayoraApp)
     }
 
+    private val galleryViewModel: GalleryViewModel by viewModels {
+        GalleryViewModel.factory(application as VayoraApp)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(
@@ -34,7 +39,12 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             VayoraTheme {
-                VayoraRoot(dashboardViewModel, authViewModel, cloudViewModel)
+                VayoraRoot(
+                    dashboardViewModel,
+                    authViewModel,
+                    cloudViewModel,
+                    galleryViewModel
+                )
             }
         }
     }
@@ -43,6 +53,7 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         if (!isChangingConfigurations) {
             authViewModel.lock()
+            galleryViewModel.clear()
         }
     }
 }

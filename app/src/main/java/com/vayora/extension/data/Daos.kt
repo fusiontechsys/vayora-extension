@@ -5,6 +5,15 @@ import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
+data class LocalPhotoRow(
+    val id: Long,
+    val eventId: Long,
+    val localPath: String?,
+    val capturedAt: Long,
+    val syncState: String,
+    val category: String?
+)
+
 @Dao
 interface EventDao {
     @Insert
@@ -47,6 +56,14 @@ interface EvidenceDao {
     suspend fun getPending(): List<EvidencePhoto>
 
     @Query(
+        "SELECT p.id AS id, p.eventId AS eventId, p.localPath AS localPath, " +
+            "p.capturedAt AS capturedAt, p.syncState AS syncState, e.type AS category " +
+            "FROM evidence_photos p LEFT JOIN security_events e ON e.id = p.eventId " +
+            "WHERE p.syncState != 'SYNCED' ORDER BY p.capturedAt DESC"
+    )
+    fun observeUnsynced(): Flow<List<LocalPhotoRow>>
+
+    @Query(
         "UPDATE evidence_photos SET syncState = 'SYNCED', driveFileId = :driveId, " +
             "localPath = NULL WHERE id = :id"
     )
@@ -54,4 +71,10 @@ interface EvidenceDao {
 
     @Query("UPDATE evidence_photos SET syncState = 'FAILED' WHERE id = :id")
     suspend fun markFailed(id: Long)
+
+    @Query("DELETE FROM evidence_photos WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM evidence_photos WHERE driveFileId = :driveId")
+    suspend fun deleteByDriveId(driveId: String)
 }

@@ -4,11 +4,24 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import org.json.JSONArray
 import org.json.JSONObject
 
 class DriveException(val code: Int, body: String) :
     IOException("HTTP $code: ${body.take(160)}")
+
+data class CloudPhoto(
+    val id: String,
+    val name: String,
+    val time: Long,
+    val category: String,
+    val eventId: Long?,
+    val thumbnailLink: String?
+)
 
 class DriveClient(private val token: String) {
 
@@ -71,12 +84,72 @@ class DriveClient(private val token: String) {
         return JSONObject(text).getString("id")
     }
 
+    fun listPhotos(folderId: String): List<CloudPhoto> {
+        val query = "'$folderId' in parents and trashed = false and " +
+            "appProperties has { key='kind' and value='photo' }"
+        val fields = "nextPageToken,files(id,name,createdTime,thumbnailLink,appProperties)"
+        val result = mutableListOf<CloudPhoto>()
+        var pageToken: String? = null
+        var pages = 0
+        do {
+            var url = "$API/files?q=${URLEncoder.encode(query, "UTF-8")}" +
+                "&fields=${URLEncoder.encode(fields, "UTF-8")}" +
+                "&orderBy=createdTime%20desc&pageSize=100"
+            if (pageToken != null) {
+                url += "&pageToken=" + URLEncoder.encode(pageToken, "UTF-8")
+            }
+            val json = JSONObject(call("GET", url))
+            val files = json.optJSONArray("files")
+            if (files != null) {
+                for (i in 0 until files.length()) {
+                    val f = files.getJSONObject(i)
+                    val props = f.optJSONObject("appProperties")
+                    val captured = props?.optString("capturedAt", "")?.toLongOrNull()
+                    val time = captured ?: parseDriveTime(f.optString("createdTime", ""))
+                    result.add(
+                        CloudPhoto(
+                            id = f.getString("id"),
+                            name = f.optString("name", ""),
+                            time = time,
+                            category = props?.optString("category", "Unknown") ?: "Unknown",
+                            eventId = props?.optString("eventId", "")?.toLongOrNull(),
+                            thumbnailLink = f.optString("thumbnailLink", "").ifEmpty { null }
+                        )
+                    )
+                }
+            }
+            pageToken = json.optString("nextPageToken", "").ifEmpty { null }
+            pages++
+        } while (pageToken != null && pages < 10)
+        return result
+    }
+
+    fun downloadMedia(fileId: String): ByteArray =
+        callBytes("GET", "$API/files/$fileId?alt=media")
+
+    fun fetchBytes(url: String): ByteArray = callBytes("GET", url)
+
+    fun deleteFile(fileId: String) {
+        try {
+            callBytes("DELETE", "$API/files/$fileId")
+        } catch (e: DriveException) {
+            if (e.code != 404) throw e
+        }
+    }
+
     private fun call(
         method: String,
         url: String,
         contentType: String? = null,
         body: ByteArray? = null
-    ): String {
+    ): String = String(callBytes(method, url, contentType, body), Charsets.UTF_8)
+
+    private fun callBytes(
+        method: String,
+        url: String,
+        contentType: String? = null,
+        body: ByteArray? = null
+    ): ByteArray {
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = method
@@ -92,12 +165,25 @@ class DriveClient(private val token: String) {
                 conn.outputStream.use { it.write(body) }
             }
             val code = conn.responseCode
-            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            val text = stream?.bufferedReader()?.use { it.readText() } ?: ""
-            if (code !in 200..299) throw DriveException(code, text)
-            return text
+            if (code in 200..299) {
+                val stream = conn.inputStream
+                return stream?.use { it.readBytes() } ?: ByteArray(0)
+            }
+            val errorText = conn.errorStream?.use { String(it.readBytes(), Charsets.UTF_8) } ?: ""
+            throw DriveException(code, errorText)
         } finally {
             conn.disconnect()
+        }
+    }
+
+    private fun parseDriveTime(text: String): Long {
+        if (text.isEmpty()) return 0L
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            format.timeZone = TimeZone.getTimeZone("UTC")
+            format.parse(text)?.time ?: 0L
+        } catch (e: Exception) {
+            0L
         }
     }
 

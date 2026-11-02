@@ -10,6 +10,7 @@ class SecurityRepository(private val db: VayoraDatabase) {
     val allEvents: Flow<List<SecurityEvent>> = db.eventDao().observeAll()
     val eventCount: Flow<Int> = db.eventDao().observeCount()
     val photoCount: Flow<Int> = db.evidenceDao().observeCount()
+    val unsyncedPhotos: Flow<List<LocalPhotoRow>> = db.evidenceDao().observeUnsynced()
     val pendingCount: Flow<Int> = combine(
         db.evidenceDao().observePendingCount(),
         db.eventDao().observeUnsyncedCount()
@@ -48,4 +49,9 @@ class SecurityRepository(private val db: VayoraDatabase) {
     suspend fun markPhotoFailed(id: Long) = db.evidenceDao().markFailed(id)
 
     suspend fun addPhoto(photo: EvidencePhoto): Long = db.evidenceDao().insert(photo)
+
+    suspend fun deleteLocalPhoto(id: Long) = db.evidenceDao().deleteById(id)
+
+    suspend fun deletePhotoByDriveId(driveId: String) =
+        db.evidenceDao().deleteByDriveId(driveId)
 }

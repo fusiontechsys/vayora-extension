@@ -30,7 +30,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun VayoraRoot(
     dashboard: DashboardViewModel,
     auth: AuthViewModel,
-    cloud: CloudViewModel
+    cloud: CloudViewModel,
+    gallery: GalleryViewModel
 ) {
     val authUi by auth.ui.collectAsStateWithLifecycle()
 
@@ -40,7 +41,7 @@ fun VayoraRoot(
     ) {
         Box(Modifier.systemBarsPadding()) {
             if (authUi.stage == Stage.UNLOCKED) {
-                DashboardHost(dashboard, auth, cloud)
+                DashboardHost(dashboard, auth, cloud, gallery)
             } else {
                 LockScreen(authUi, auth)
             }
@@ -52,7 +53,8 @@ fun VayoraRoot(
 private fun DashboardHost(
     dashboard: DashboardViewModel,
     auth: AuthViewModel,
-    cloud: CloudViewModel
+    cloud: CloudViewModel,
+    gallery: GalleryViewModel
 ) {
     val state by dashboard.state.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
@@ -76,6 +78,8 @@ private fun DashboardHost(
         GoogleAccountScreen(cloud) { selected = null }
     } else if (section.title == "Cloud Evidence") {
         CloudEvidenceScreen(cloud) { selected = null }
+    } else if (section.title == "Photo Gallery") {
+        PhotoGalleryScreen(gallery) { selected = null }
     } else {
         SectionScreen(section) { selected = null }
     }
