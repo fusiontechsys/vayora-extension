@@ -13,6 +13,7 @@ object KeystoreCrypto {
     private const val PROVIDER = "AndroidKeyStore"
     private const val ALIAS = "vayora_master_key"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
+    private const val IV_SIZE = 12
 
     private fun key(): SecretKey {
         val store = KeyStore.getInstance(PROVIDER).apply { load(null) }
@@ -49,6 +50,31 @@ object KeystoreCrypto {
             } else {
                 val iv = Base64.decode(parts[0], Base64.NO_WRAP)
                 val cipherText = Base64.decode(parts[1], Base64.NO_WRAP)
+                val cipher = Cipher.getInstance(TRANSFORMATION)
+                cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
+                cipher.doFinal(cipherText)
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Encrypts raw bytes. The result is the 12-byte IV followed by the ciphertext. */
+    fun encryptBytes(plain: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, key())
+        val iv = cipher.iv
+        val cipherText = cipher.doFinal(plain)
+        return iv + cipherText
+    }
+
+    fun decryptBytes(data: ByteArray): ByteArray? {
+        return try {
+            if (data.size <= IV_SIZE) {
+                null
+            } else {
+                val iv = data.copyOfRange(0, IV_SIZE)
+                val cipherText = data.copyOfRange(IV_SIZE, data.size)
                 val cipher = Cipher.getInstance(TRANSFORMATION)
                 cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
                 cipher.doFinal(cipherText)

@@ -16,8 +16,9 @@ import com.vayora.extension.cloud.ImageUtil
 import com.vayora.extension.cloud.SyncScheduler
 import com.vayora.extension.data.EvidencePhoto
 import com.vayora.extension.data.SecurityRepository
-import java.io.File
-import java.io.FileOutputStream
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
@@ -73,10 +74,12 @@ object CameraCapture {
         }
         delay(700)
 
-        val dir = File(appContext.filesDir, "evidence").apply { mkdirs() }
-        val now = System.currentTimeMillis()
-        val file = File(dir, "evidence_${eventId}_$now.jpg")
-        val saved = withTimeoutOrNull(10_000) { takePicture(appContext, imageCapture, file) } ?: false
+        // The photo goes straight into memory, so no unencrypted file is ever written.
+        val buffer = ByteArrayOutputStream()
+        val saved = withTimeoutOrNull(10_000) {
+            takePicture(appContext, imageCapture, buffer)
+        } ?: false
+        val capturedAt = System.currentTimeMillis()
 
         withContext(Dispatchers.Main) {
             try {
@@ -86,16 +89,17 @@ object CameraCapture {
             }
         }
 
-        if (!saved) {
-            file.delete()
-            return CaptureResult.FAILED
+        if (!saved) return CaptureResult.FAILED
+
+        val file = withContext(Dispatchers.IO) {
+            val jpeg = uprightJpeg(buffer.toByteArray())
+            EvidenceStore.saveEncrypted(appContext, jpeg, eventId, capturedAt)
         }
-        withContext(Dispatchers.IO) { normalizeOrientation(file) }
         repository.addPhoto(
             EvidencePhoto(
                 eventId = eventId,
                 localPath = file.absolutePath,
-                capturedAt = now
+                capturedAt = capturedAt
             )
         )
         SyncScheduler.syncSoon(appContext)
@@ -120,9 +124,9 @@ object CameraCapture {
     private suspend fun takePicture(
         context: Context,
         capture: ImageCapture,
-        file: File
+        stream: OutputStream
     ): Boolean = suspendCancellableCoroutine { cont ->
-        val options = ImageCapture.OutputFileOptions.Builder(file).build()
+        val options = ImageCapture.OutputFileOptions.Builder(stream).build()
         capture.takePicture(
             options,
             ContextCompat.getMainExecutor(context),
@@ -139,9 +143,9 @@ object CameraCapture {
     }
 
     /** Bakes the EXIF rotation into the pixels so every viewer shows the photo upright. */
-    private fun normalizeOrientation(file: File) {
-        try {
-            val exif = ExifInterface(file.absolutePath)
+    private fun uprightJpeg(bytes: ByteArray): ByteArray {
+        return try {
+            val exif = ExifInterface(ByteArrayInputStream(bytes))
             val orientation = exif.getAttributeInt(
                 ExifInterface.TAG_ORIENTATION,
                 ExifInterface.ORIENTATION_NORMAL
@@ -152,18 +156,18 @@ object CameraCapture {
                 ExifInterface.ORIENTATION_ROTATE_270 -> 270f
                 else -> 0f
             }
-            val bitmap = ImageUtil.decodeFile(file.absolutePath, MAX_DIM) ?: return
+            val bitmap = ImageUtil.decodeBytes(bytes, MAX_DIM) ?: return bytes
             val upright = if (degrees != 0f) {
                 val matrix = Matrix().apply { postRotate(degrees) }
                 Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
             } else {
                 bitmap
             }
-            FileOutputStream(file).use { out ->
-                upright.compress(Bitmap.CompressFormat.JPEG, 88, out)
-            }
+            val out = ByteArrayOutputStream()
+            upright.compress(Bitmap.CompressFormat.JPEG, 88, out)
+            out.toByteArray()
         } catch (e: Exception) {
-            // keep the original file if it cannot be rewritten
+            bytes
         }
     }
 }

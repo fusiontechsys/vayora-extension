@@ -2,6 +2,8 @@ package com.vayora.extension.cloud
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import com.vayora.extension.evidence.EvidenceStore
+import java.io.File
 
 object ImageUtil {
 
@@ -31,20 +33,9 @@ object ImageUtil {
         }
     }
 
+    /** Decodes a local evidence file. Encrypted .enc files are decrypted in memory only. */
     fun decodeFile(path: String, maxDim: Int): Bitmap? {
-        return try {
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeFile(path, bounds)
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                null
-            } else {
-                val options = BitmapFactory.Options().apply {
-                    inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, maxDim)
-                }
-                BitmapFactory.decodeFile(path, options)
-            }
-        } catch (e: OutOfMemoryError) {
-            null
-        }
+        val bytes = EvidenceStore.read(File(path)) ?: return null
+        return decodeBytes(bytes, maxDim)
     }
 }

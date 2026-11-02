@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.vayora.extension.security.ExternalFlowGrace
 import com.vayora.extension.security.PasscodeManager
 import com.vayora.extension.security.VerifyResult
 import kotlinx.coroutines.Dispatchers
@@ -18,13 +19,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 enum class Stage {
-    SETUP, SETUP_CONFIRM, LOCKED, UNLOCKED, CHANGE_CURRENT, CHANGE_NEW, CHANGE_CONFIRM
+    SETUP, SETUP_CONFIRM, LOCKED, UNLOCKED,
+    CHANGE_CURRENT, CHANGE_NEW, CHANGE_CONFIRM,
+    RECOVERY, RECOVERY_NEW, RECOVERY_CONFIRM
 }
 
 data class AuthUi(
     val stage: Stage,
     val filled: Int = 0,
     val message: String? = null,
+    val notice: String? = null,
     val lockSeconds: Long = 0,
     val attemptsLeft: Int? = null,
     val busy: Boolean = false
@@ -44,6 +48,7 @@ class AuthViewModel(
     private var firstEntry = ""
     private var ticker: Job? = null
     private var generation = 0
+    private var pendingLock = false
 
     init {
         refreshLock()
@@ -51,9 +56,10 @@ class AuthViewModel(
 
     fun onDigit(digit: Char) {
         val s = _ui.value
-        if (s.busy || s.lockSeconds > 0 || s.stage == Stage.UNLOCKED || entry.length >= 6) return
+        if (s.busy || s.lockSeconds > 0 || entry.length >= 6) return
+        if (s.stage == Stage.UNLOCKED || s.stage == Stage.RECOVERY) return
         entry += digit
-        _ui.update { it.copy(filled = entry.length, message = null) }
+        _ui.update { it.copy(filled = entry.length, message = null, notice = null) }
         if (entry.length == 6) submit()
     }
 
@@ -80,6 +86,48 @@ class AuthViewModel(
         _ui.value = AuthUi(Stage.UNLOCKED)
     }
 
+    fun startRecovery() {
+        entry = ""
+        firstEntry = ""
+        generation++
+        ticker?.cancel()
+        _ui.value = AuthUi(Stage.RECOVERY)
+    }
+
+    fun cancelRecovery() {
+        entry = ""
+        firstEntry = ""
+        generation++
+        _ui.value = AuthUi(Stage.LOCKED)
+        refreshLock()
+    }
+
+    /** Called once both the Google account and the recovery phrase have been verified. */
+    fun recoveryVerified() {
+        entry = ""
+        firstEntry = ""
+        generation++
+        _ui.value = AuthUi(Stage.RECOVERY_NEW)
+    }
+
+    /** Lock called from the activity going to the background. */
+    fun lockFromBackground() {
+        if (ExternalFlowGrace.active()) {
+            pendingLock = true
+            return
+        }
+        lock()
+    }
+
+    /** Called when the activity comes back to the foreground. */
+    fun onForeground() {
+        val skipped = pendingLock
+        pendingLock = false
+        if (skipped && !ExternalFlowGrace.active()) {
+            lock()
+        }
+    }
+
     fun lock() {
         entry = ""
         firstEntry = ""
@@ -89,6 +137,9 @@ class AuthViewModel(
             Stage.CHANGE_CURRENT,
             Stage.CHANGE_NEW,
             Stage.CHANGE_CONFIRM,
+            Stage.RECOVERY,
+            Stage.RECOVERY_NEW,
+            Stage.RECOVERY_CONFIRM,
             Stage.LOCKED -> {
                 _ui.value = AuthUi(Stage.LOCKED)
                 refreshLock()
@@ -104,11 +155,14 @@ class AuthViewModel(
         val code = entry
         when (_ui.value.stage) {
             Stage.SETUP -> acceptNew(code, Stage.SETUP_CONFIRM)
-            Stage.SETUP_CONFIRM -> confirmNew(code, Stage.SETUP)
+            Stage.SETUP_CONFIRM -> confirmNew(code, Stage.SETUP, Stage.UNLOCKED)
             Stage.CHANGE_NEW -> acceptNew(code, Stage.CHANGE_CONFIRM)
-            Stage.CHANGE_CONFIRM -> confirmNew(code, Stage.CHANGE_NEW)
+            Stage.CHANGE_CONFIRM -> confirmNew(code, Stage.CHANGE_NEW, Stage.UNLOCKED)
+            Stage.RECOVERY_NEW -> acceptNew(code, Stage.RECOVERY_CONFIRM)
+            Stage.RECOVERY_CONFIRM -> confirmNew(code, Stage.RECOVERY_NEW, Stage.LOCKED)
             Stage.LOCKED -> verify(code)
             Stage.CHANGE_CURRENT -> verify(code)
+            Stage.RECOVERY -> Unit
             Stage.UNLOCKED -> Unit
         }
     }
@@ -123,7 +177,7 @@ class AuthViewModel(
         _ui.update { it.copy(stage = next, filled = 0, message = null) }
     }
 
-    private fun confirmNew(code: String, backStage: Stage) {
+    private fun confirmNew(code: String, backStage: Stage, successStage: Stage) {
         entry = ""
         if (code != firstEntry) {
             firstEntry = ""
@@ -142,7 +196,13 @@ class AuthViewModel(
             withContext(Dispatchers.Default) { manager.setPasscode(code) }
             if (gen != generation) return@launch
             firstEntry = ""
-            _ui.value = AuthUi(Stage.UNLOCKED)
+            val notice = if (successStage == Stage.LOCKED) {
+                "Passcode reset. Enter your new passcode."
+            } else {
+                null
+            }
+            _ui.value = AuthUi(successStage, notice = notice)
+            if (successStage == Stage.LOCKED) refreshLock()
         }
     }
 

@@ -6,16 +6,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vayora.extension.ui.theme.Warning
 
 @Composable
 fun VayoraRoot(
@@ -32,7 +38,8 @@ fun VayoraRoot(
     auth: AuthViewModel,
     cloud: CloudViewModel,
     gallery: GalleryViewModel,
-    monitor: MonitorViewModel
+    monitor: MonitorViewModel,
+    recovery: RecoveryViewModel
 ) {
     val authUi by auth.ui.collectAsStateWithLifecycle()
 
@@ -41,10 +48,10 @@ fun VayoraRoot(
         color = MaterialTheme.colorScheme.background
     ) {
         Box(Modifier.systemBarsPadding()) {
-            if (authUi.stage == Stage.UNLOCKED) {
-                DashboardHost(dashboard, auth, cloud, gallery, monitor)
-            } else {
-                LockScreen(authUi, auth)
+            when (authUi.stage) {
+                Stage.UNLOCKED -> DashboardHost(dashboard, auth, cloud, gallery, monitor, recovery)
+                Stage.RECOVERY -> RecoveryScreen(recovery, auth)
+                else -> LockScreen(authUi, auth)
             }
         }
     }
@@ -56,7 +63,8 @@ private fun DashboardHost(
     auth: AuthViewModel,
     cloud: CloudViewModel,
     gallery: GalleryViewModel,
-    monitor: MonitorViewModel
+    monitor: MonitorViewModel,
+    recovery: RecoveryViewModel
 ) {
     val state by dashboard.state.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
@@ -64,30 +72,70 @@ private fun DashboardHost(
 
     BackHandler(enabled = section != null) { selected = null }
 
-    if (section == null) {
-        OverviewScreen(
-            state = state,
-            onOpen = { selected = it.title },
-            onLock = { auth.lock() }
-        )
-    } else if (section.title == "Passcode Settings") {
-        PasscodeSettingsScreen(
-            onBack = { selected = null },
-            onChange = { auth.startChange() },
-            onLockNow = { auth.lock() }
-        )
-    } else if (section.title == "Google Account") {
-        GoogleAccountScreen(cloud) { selected = null }
-    } else if (section.title == "Cloud Evidence") {
-        CloudEvidenceScreen(cloud) { selected = null }
-    } else if (section.title == "Photo Gallery") {
-        PhotoGalleryScreen(gallery) { selected = null }
-    } else if (section.title == "Device Security") {
-        DeviceSecurityScreen(monitor) { selected = null }
-    } else if (section.title == "Security Activity") {
-        SecurityActivityScreen(monitor) { selected = null }
-    } else {
-        SectionScreen(section) { selected = null }
+    Column(Modifier.fillMaxSize()) {
+        if (section == null && !state.recoveryReady) {
+            RecoveryBanner { selected = "Recovery Settings" }
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            if (section == null) {
+                OverviewScreen(
+                    state = state,
+                    onOpen = { selected = it.title },
+                    onLock = { auth.lock() }
+                )
+            } else if (section.title == "Passcode Settings") {
+                PasscodeSettingsScreen(
+                    onBack = { selected = null },
+                    onChange = { auth.startChange() },
+                    onLockNow = { auth.lock() }
+                )
+            } else if (section.title == "Google Account") {
+                GoogleAccountScreen(cloud) { selected = null }
+            } else if (section.title == "Cloud Evidence") {
+                CloudEvidenceScreen(cloud) { selected = null }
+            } else if (section.title == "Photo Gallery") {
+                PhotoGalleryScreen(gallery) { selected = null }
+            } else if (section.title == "Device Security") {
+                DeviceSecurityScreen(monitor) { selected = null }
+            } else if (section.title == "Security Activity") {
+                SecurityActivityScreen(monitor) { selected = null }
+            } else if (section.title == "Recovery Settings") {
+                RecoverySettingsScreen(recovery) { selected = null }
+            } else if (section.title == "Application Settings") {
+                AppSettingsScreen(
+                    onBack = { selected = null },
+                    onSecureLogout = {
+                        cloud.disconnect()
+                        gallery.clear()
+                        auth.lock()
+                    }
+                )
+            } else {
+                SectionScreen(section) { selected = null }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecoveryBanner(onSetUp: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Passcode recovery is not ready. Without it a forgotten passcode cannot " +
+                    "be reset.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Warning,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onSetUp) { Text("Set up") }
+        }
     }
 }
 

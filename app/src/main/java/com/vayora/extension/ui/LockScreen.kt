@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,7 +51,6 @@ private fun formatCountdown(seconds: Long): String {
 
 @Composable
 fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
-    var showForgot by remember { mutableStateOf(false) }
     var captureNote by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
@@ -76,6 +74,9 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
         Stage.CHANGE_CURRENT -> "Current passcode" to "Enter your current passcode"
         Stage.CHANGE_NEW -> "New passcode" to "Choose a new six-digit passcode"
         Stage.CHANGE_CONFIRM -> "Confirm new passcode" to "Enter the new digits again"
+        Stage.RECOVERY_NEW -> "Reset passcode" to "Choose a new six-digit passcode"
+        Stage.RECOVERY_CONFIRM -> "Confirm new passcode" to "Enter the new digits again"
+        Stage.RECOVERY -> "" to ""
         Stage.UNLOCKED -> "" to ""
     }
 
@@ -85,7 +86,8 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
         null
     }
     val attemptsText: String? = ui.attemptsLeft?.let { "$it attempts remaining before lockout" }
-    val info: String = lockText ?: ui.message ?: attemptsText ?: titleAndSubtitle.second
+    val info: String = lockText ?: ui.message ?: ui.notice ?: attemptsText
+        ?: titleAndSubtitle.second
     val isError = lockText != null || ui.message != null
     val infoColor = if (isError) {
         MaterialTheme.colorScheme.error
@@ -148,7 +150,7 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
         )
         Spacer(Modifier.height(12.dp))
         when (ui.stage) {
-            Stage.LOCKED -> TextButton(onClick = { showForgot = true }) {
+            Stage.LOCKED -> TextButton(onClick = { auth.startRecovery() }) {
                 Text("Forgot passcode?")
             }
             Stage.CHANGE_CURRENT,
@@ -156,26 +158,12 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
             Stage.CHANGE_CONFIRM -> TextButton(onClick = { auth.cancelChange() }) {
                 Text("Cancel")
             }
+            Stage.RECOVERY_NEW,
+            Stage.RECOVERY_CONFIRM -> TextButton(onClick = { auth.cancelRecovery() }) {
+                Text("Cancel")
+            }
             else -> Unit
         }
-    }
-
-    if (showForgot) {
-        AlertDialog(
-            onDismissRequest = { showForgot = false },
-            confirmButton = {
-                TextButton(onClick = { showForgot = false }) { Text("OK") }
-            },
-            title = { Text("Forgot passcode") },
-            text = {
-                Text(
-                    "Recovery verifies your registered Google account and asks for an " +
-                        "extra confirmation before you can choose a new passcode. It becomes " +
-                        "available once Google sign-in and recovery are set up in an " +
-                        "upcoming update."
-                )
-            }
-        )
     }
 }
 

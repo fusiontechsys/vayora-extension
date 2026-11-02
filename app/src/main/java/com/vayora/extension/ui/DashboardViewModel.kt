@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.vayora.extension.cloud.DriveStateStore
 import com.vayora.extension.data.SecurityEvent
 import com.vayora.extension.data.SecurityRepository
+import com.vayora.extension.security.RecoveryManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -19,15 +20,17 @@ data class DashboardState(
     val photoCount: Int = 0,
     val pendingUploads: Int = 0,
     val driveStatus: String = "Not connected",
-    val lastSync: Long? = null
+    val lastSync: Long? = null,
+    val recoveryReady: Boolean = false
 )
 
 class DashboardViewModel(
     repository: SecurityRepository,
-    driveStore: DriveStateStore
+    driveStore: DriveStateStore,
+    recovery: RecoveryManager
 ) : ViewModel() {
 
-    val state: StateFlow<DashboardState> = combine(
+    private val base = combine(
         repository.lastEvent,
         repository.eventCount,
         repository.photoCount,
@@ -49,15 +52,21 @@ class DashboardViewModel(
             driveStatus = status,
             lastSync = drive.lastSync
         )
+    }
+
+    val state: StateFlow<DashboardState> = combine(base, recovery.hasPhrase, driveStore.state) {
+        dashboard, hasPhrase, drive ->
+        dashboard.copy(recoveryReady = hasPhrase && drive.email != null)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardState())
 
     companion object {
         fun factory(
             repository: SecurityRepository,
-            driveStore: DriveStateStore
+            driveStore: DriveStateStore,
+            recovery: RecoveryManager
         ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { DashboardViewModel(repository, driveStore) }
+                initializer { DashboardViewModel(repository, driveStore, recovery) }
             }
     }
 }

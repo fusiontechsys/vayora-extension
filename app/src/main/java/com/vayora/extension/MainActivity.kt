@@ -7,11 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import com.vayora.extension.evidence.CameraCapture
 import com.vayora.extension.monitor.MonitorService
+import com.vayora.extension.security.ExternalFlowGrace
 import com.vayora.extension.ui.AuthViewModel
 import com.vayora.extension.ui.CloudViewModel
 import com.vayora.extension.ui.DashboardViewModel
 import com.vayora.extension.ui.GalleryViewModel
 import com.vayora.extension.ui.MonitorViewModel
+import com.vayora.extension.ui.RecoveryViewModel
 import com.vayora.extension.ui.VayoraRoot
 import com.vayora.extension.ui.theme.VayoraTheme
 
@@ -19,7 +21,7 @@ class MainActivity : ComponentActivity() {
 
     private val dashboardViewModel: DashboardViewModel by viewModels {
         val app = application as VayoraApp
-        DashboardViewModel.factory(app.repository, app.driveState)
+        DashboardViewModel.factory(app.repository, app.driveState, app.recoveryManager)
     }
 
     private val authViewModel: AuthViewModel by viewModels {
@@ -41,6 +43,10 @@ class MainActivity : ComponentActivity() {
         MonitorViewModel.factory(application as VayoraApp)
     }
 
+    private val recoveryViewModel: RecoveryViewModel by viewModels {
+        RecoveryViewModel.factory(application as VayoraApp)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(
@@ -54,7 +60,8 @@ class MainActivity : ComponentActivity() {
                     authViewModel,
                     cloudViewModel,
                     galleryViewModel,
-                    monitorViewModel
+                    monitorViewModel,
+                    recoveryViewModel
                 )
             }
         }
@@ -62,6 +69,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        authViewModel.onForeground()
         val app = application as VayoraApp
         if (!app.monitorSettings.state.value.enabled) return
         if (!MonitorService.running.value) {
@@ -80,10 +88,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        ExternalFlowGrace.end()
+    }
+
     override fun onStop() {
         super.onStop()
         if (!isChangingConfigurations) {
-            authViewModel.lock()
+            authViewModel.lockFromBackground()
             galleryViewModel.clear()
         }
     }

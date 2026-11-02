@@ -9,6 +9,7 @@ import com.vayora.extension.data.VayoraDatabase
 import com.vayora.extension.evidence.EvidenceCoordinator
 import com.vayora.extension.monitor.MonitorSettings
 import com.vayora.extension.security.PasscodeManager
+import com.vayora.extension.security.RecoveryManager
 
 class VayoraApp : Application() {
     val repository: SecurityRepository by lazy {
@@ -16,6 +17,9 @@ class VayoraApp : Application() {
     }
     val passcodeManager: PasscodeManager by lazy {
         PasscodeManager(this)
+    }
+    val recoveryManager: RecoveryManager by lazy {
+        RecoveryManager(this)
     }
     val driveState: DriveStateStore by lazy {
         DriveStateStore(this)

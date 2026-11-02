@@ -3,6 +3,7 @@ package com.vayora.extension.cloud
 import android.content.Context
 import com.vayora.extension.data.SecurityEvent
 import com.vayora.extension.data.SecurityRepository
+import com.vayora.extension.evidence.EvidenceStore
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -109,7 +110,8 @@ class SyncManager(
         for (photo in repository.pendingPhotos()) {
             val path = photo.localPath
             val file = if (path != null) File(path) else null
-            if (file == null || !file.exists()) {
+            val bytes = if (file != null) EvidenceStore.read(file) else null
+            if (file == null || bytes == null) {
                 repository.markPhotoFailed(photo.id)
                 continue
             }
@@ -117,7 +119,7 @@ class SyncManager(
             val driveId = client.upload(
                 name = "evidence_${photo.eventId}_${photo.capturedAt}.jpg",
                 mime = "image/jpeg",
-                bytes = file.readBytes(),
+                bytes = bytes,
                 parentId = folderId,
                 props = mapOf(
                     "kind" to "photo",
