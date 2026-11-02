@@ -2,12 +2,15 @@ package com.vayora.extension.ui
 
 import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -49,7 +53,9 @@ import kotlinx.coroutines.launch
 
 private enum class Tone { GOOD, WARN, NONE }
 
-private fun hasCameraPermission(context: android.content.Context): Boolean =
+private val GapOptions = listOf(0 to "Every unlock", 1 to "1 min", 5 to "5 min", 30 to "30 min")
+
+private fun hasCameraPermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
         PackageManager.PERMISSION_GRANTED
 
@@ -61,14 +67,17 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
     val config by vm.settings.collectAsStateWithLifecycle()
     val evidence by vm.evidenceSettings.collectAsStateWithLifecycle()
     val running by MonitorService.running.collectAsStateWithLifecycle()
+    val cameraActive by MonitorService.cameraActive.collectAsStateWithLifecycle()
     var adminActive by remember { mutableStateOf(AdminHelper.isActive(context)) }
     var cameraGranted by remember { mutableStateOf(hasCameraPermission(context)) }
+    var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     var testMessage by remember { mutableStateOf<String?>(null) }
     var testing by remember { mutableStateOf(false) }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         adminActive = AdminHelper.isActive(context)
         cameraGranted = hasCameraPermission(context)
+        overlayGranted = Settings.canDrawOverlays(context)
     }
 
     val notificationLauncher = rememberLauncherForActivityResult(
@@ -77,7 +86,10 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> cameraGranted = granted }
+    ) { granted ->
+        cameraGranted = granted
+        if (granted) vm.restartMonitoring()
+    }
 
     val toggleMonitoring: (Boolean) -> Unit = { enable ->
         if (!enable) {
@@ -157,7 +169,8 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             if (cameraGranted) "Granted" else "Not granted",
             if (cameraGranted) Tone.GOOD else Tone.WARN,
             "Photos use the front camera and are stored privately on this phone until " +
-                "they upload to your Google Drive."
+                "they upload to your Google Drive. Android shows its camera indicator " +
+                "dot during every capture."
         )
         if (!cameraGranted) {
             Button(
@@ -165,20 +178,79 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Allow camera") }
         }
-        SettingCard(
-            title = "Photo after wrong Vayora passcode",
-            subtitle = "Takes a photo from the second wrong attempt. Shown on this lock screen.",
-            checked = evidence.captureOnAppFail,
-            onChange = { vm.setCaptureOnAppFail(it) }
+        CapabilityCard(
+            "Background camera service",
+            if (cameraActive) "Ready" else "Not ready",
+            if (cameraActive) Tone.GOOD else Tone.WARN,
+            "Becomes ready when monitoring is on, the camera is allowed and a photo " +
+                "option below is enabled, after you open this app. After a phone restart, " +
+                "open Vayora once to make it ready again."
         )
+        CapabilityCard(
+            "Fallback capture screen",
+            if (overlayGranted) "Allowed" else "Not allowed",
+            if (overlayGranted) Tone.GOOD else Tone.WARN,
+            "If the background service cannot use the camera, Vayora briefly shows a " +
+                "visible capture screen instead. That needs \"Display over other apps\"."
+        )
+        if (!overlayGranted) {
+            OutlinedButton(
+                onClick = {
+                    try {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:${context.packageName}")
+                            )
+                        )
+                    } catch (e: ActivityNotFoundException) {
+                        // settings screen not available on this device
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Allow display over other apps") }
+        }
+
         SettingCard(
-            title = "Photo after failed phone unlock",
-            subtitle = "Needs failed-attempt detection and notifications. Opens a visible " +
-                "Vayora screen over your lock screen from the second failed attempt. " +
-                "Android may not allow this on every phone, so test it below.",
+            title = "Photo on every successful unlock",
+            subtitle = "Takes a front-camera photo each time the phone is unlocked, " +
+                "whoever unlocks it.",
+            checked = evidence.captureOnUnlock,
+            onChange = { vm.setCaptureOnUnlock(it) }
+        )
+        if (evidence.captureOnUnlock) {
+            Text(
+                "Minimum time between unlock photos",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                GapOptions.forEach { option ->
+                    FilterChip(
+                        selected = evidence.unlockGapMinutes == option.first,
+                        onClick = { vm.setUnlockGapMinutes(option.first) },
+                        label = { Text(option.second) }
+                    )
+                }
+            }
+        }
+        SettingCard(
+            title = "Photo after every failed phone unlock",
+            subtitle = "Needs failed-attempt detection. One photo per failed attempt, at " +
+                "most one every 8 seconds.",
             checked = evidence.captureOnSystemFail,
             onChange = { vm.setCaptureOnSystemFail(it) }
         )
+        SettingCard(
+            title = "Photo after every wrong Vayora passcode",
+            subtitle = "Taken on this lock screen, at most one every 8 seconds.",
+            checked = evidence.captureOnAppFail,
+            onChange = { vm.setCaptureOnAppFail(it) }
+        )
+
         Button(
             onClick = {
                 scope.launch {
@@ -238,13 +310,6 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             "Not available",
             Tone.NONE,
             "Android does not tell ordinary apps how the phone was unlocked."
-        )
-        CapabilityCard(
-            "Background photo on a successful unlock",
-            "Not possible",
-            Tone.NONE,
-            "Android 11 and newer block camera use from the background, so Vayora " +
-                "cannot silently photograph an unlock."
         )
     }
 }

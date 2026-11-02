@@ -35,9 +35,17 @@ class MonitorViewModel(private val app: VayoraApp) : ViewModel() {
     fun setMonitoring(enabled: Boolean) {
         app.monitorSettings.setEnabled(enabled)
         if (enabled) {
-            MonitorService.start(app)
+            MonitorService.start(app, true)
         } else {
             MonitorService.stop(app)
+        }
+    }
+
+    /** Restarts the service so it can pick up newly granted camera access. */
+    fun restartMonitoring() {
+        if (app.monitorSettings.state.value.enabled) {
+            MonitorService.stop(app)
+            MonitorService.start(app, true)
         }
     }
 
@@ -51,6 +59,16 @@ class MonitorViewModel(private val app: VayoraApp) : ViewModel() {
 
     fun setCaptureOnSystemFail(value: Boolean) {
         app.evidenceCoordinator.settings.setCaptureOnSystemFail(value)
+        restartMonitoring()
+    }
+
+    fun setCaptureOnUnlock(value: Boolean) {
+        app.evidenceCoordinator.settings.setCaptureOnUnlock(value)
+        restartMonitoring()
+    }
+
+    fun setUnlockGapMinutes(value: Int) {
+        app.evidenceCoordinator.settings.setUnlockGapMinutes(value)
     }
 
     suspend fun testPhoto(context: Context, owner: LifecycleOwner): CaptureResult {

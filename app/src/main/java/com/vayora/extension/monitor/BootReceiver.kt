@@ -16,7 +16,8 @@ class BootReceiver : BroadcastReceiver() {
                 "Phone restarted and was unlocked for the first time.",
                 pending = goAsync()
             )
-            MonitorService.start(app)
+            // Started from boot, so it runs without camera access until the app is opened.
+            MonitorService.start(app, false)
         }
     }
 }

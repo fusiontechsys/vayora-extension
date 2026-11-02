@@ -5,6 +5,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import com.vayora.extension.evidence.CameraCapture
 import com.vayora.extension.monitor.MonitorService
 import com.vayora.extension.ui.AuthViewModel
 import com.vayora.extension.ui.CloudViewModel
@@ -62,8 +63,20 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         val app = application as VayoraApp
-        if (app.monitorSettings.state.value.enabled && !MonitorService.running.value) {
-            MonitorService.start(this)
+        if (!app.monitorSettings.state.value.enabled) return
+        if (!MonitorService.running.value) {
+            MonitorService.start(this, true)
+        } else {
+            val evidence = app.evidenceCoordinator.settings.state.value
+            val wantsCamera = evidence.captureOnUnlock || evidence.captureOnSystemFail
+            if (wantsCamera && !MonitorService.cameraActive.value &&
+                CameraCapture.hasPermission(this)
+            ) {
+                // The service only gets background camera access when it is started
+                // while this screen is visible, so restart it now.
+                MonitorService.stop(this)
+                MonitorService.start(this, true)
+            }
         }
     }
 
