@@ -31,7 +31,8 @@ fun VayoraRoot(
     dashboard: DashboardViewModel,
     auth: AuthViewModel,
     cloud: CloudViewModel,
-    gallery: GalleryViewModel
+    gallery: GalleryViewModel,
+    monitor: MonitorViewModel
 ) {
     val authUi by auth.ui.collectAsStateWithLifecycle()
 
@@ -41,7 +42,7 @@ fun VayoraRoot(
     ) {
         Box(Modifier.systemBarsPadding()) {
             if (authUi.stage == Stage.UNLOCKED) {
-                DashboardHost(dashboard, auth, cloud, gallery)
+                DashboardHost(dashboard, auth, cloud, gallery, monitor)
             } else {
                 LockScreen(authUi, auth)
             }
@@ -54,7 +55,8 @@ private fun DashboardHost(
     dashboard: DashboardViewModel,
     auth: AuthViewModel,
     cloud: CloudViewModel,
-    gallery: GalleryViewModel
+    gallery: GalleryViewModel,
+    monitor: MonitorViewModel
 ) {
     val state by dashboard.state.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
@@ -80,6 +82,10 @@ private fun DashboardHost(
         CloudEvidenceScreen(cloud) { selected = null }
     } else if (section.title == "Photo Gallery") {
         PhotoGalleryScreen(gallery) { selected = null }
+    } else if (section.title == "Device Security") {
+        DeviceSecurityScreen(monitor) { selected = null }
+    } else if (section.title == "Security Activity") {
+        SecurityActivityScreen(monitor) { selected = null }
     } else {
         SectionScreen(section) { selected = null }
     }

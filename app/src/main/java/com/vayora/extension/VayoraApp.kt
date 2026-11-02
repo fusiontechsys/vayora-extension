@@ -6,6 +6,7 @@ import com.vayora.extension.cloud.SyncManager
 import com.vayora.extension.cloud.SyncScheduler
 import com.vayora.extension.data.SecurityRepository
 import com.vayora.extension.data.VayoraDatabase
+import com.vayora.extension.monitor.MonitorSettings
 import com.vayora.extension.security.PasscodeManager
 
 class VayoraApp : Application() {
@@ -20,6 +21,9 @@ class VayoraApp : Application() {
     }
     val syncManager: SyncManager by lazy {
         SyncManager(this, repository, driveState)
+    }
+    val monitorSettings: MonitorSettings by lazy {
+        MonitorSettings(this)
     }
 
     override fun onCreate() {

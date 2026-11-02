@@ -5,10 +5,12 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import com.vayora.extension.monitor.MonitorService
 import com.vayora.extension.ui.AuthViewModel
 import com.vayora.extension.ui.CloudViewModel
 import com.vayora.extension.ui.DashboardViewModel
 import com.vayora.extension.ui.GalleryViewModel
+import com.vayora.extension.ui.MonitorViewModel
 import com.vayora.extension.ui.VayoraRoot
 import com.vayora.extension.ui.theme.VayoraTheme
 
@@ -31,6 +33,10 @@ class MainActivity : ComponentActivity() {
         GalleryViewModel.factory(application as VayoraApp)
     }
 
+    private val monitorViewModel: MonitorViewModel by viewModels {
+        MonitorViewModel.factory(application as VayoraApp)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(
@@ -43,9 +49,18 @@ class MainActivity : ComponentActivity() {
                     dashboardViewModel,
                     authViewModel,
                     cloudViewModel,
-                    galleryViewModel
+                    galleryViewModel,
+                    monitorViewModel
                 )
             }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val app = application as VayoraApp
+        if (app.monitorSettings.state.value.enabled && !MonitorService.running.value) {
+            MonitorService.start(this)
         }
     }
 
