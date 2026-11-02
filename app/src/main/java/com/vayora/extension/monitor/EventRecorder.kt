@@ -18,14 +18,16 @@ object EventRecorder {
         type: String,
         details: String = "",
         syncNow: Boolean = false,
-        pending: BroadcastReceiver.PendingResult? = null
+        pending: BroadcastReceiver.PendingResult? = null,
+        onRecorded: ((Long) -> Unit)? = null
     ) {
         val app = context.applicationContext as VayoraApp
         val state = DeviceStateReader.describe(app)
         scope.launch {
             try {
-                app.repository.recordEvent(type, details, state)
+                val id = app.repository.recordEvent(type, details, state)
                 if (syncNow) SyncScheduler.syncSoon(app)
+                onRecorded?.invoke(id)
             } finally {
                 pending?.finish()
             }

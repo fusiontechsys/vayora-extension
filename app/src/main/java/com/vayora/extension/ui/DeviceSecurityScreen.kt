@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,28 +38,46 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.vayora.extension.evidence.CaptureResult
 import com.vayora.extension.monitor.AdminHelper
 import com.vayora.extension.monitor.MonitorService
 import com.vayora.extension.ui.theme.Success
 import com.vayora.extension.ui.theme.Warning
+import kotlinx.coroutines.launch
 
 private enum class Tone { GOOD, WARN, NONE }
+
+private fun hasCameraPermission(context: android.content.Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+        PackageManager.PERMISSION_GRANTED
 
 @Composable
 fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     val config by vm.settings.collectAsStateWithLifecycle()
+    val evidence by vm.evidenceSettings.collectAsStateWithLifecycle()
     val running by MonitorService.running.collectAsStateWithLifecycle()
     var adminActive by remember { mutableStateOf(AdminHelper.isActive(context)) }
+    var cameraGranted by remember { mutableStateOf(hasCameraPermission(context)) }
+    var testMessage by remember { mutableStateOf<String?>(null) }
+    var testing by remember { mutableStateOf(false) }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         adminActive = AdminHelper.isActive(context)
+        cameraGranted = hasCameraPermission(context)
     }
 
     val notificationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ -> vm.setMonitoring(true) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> cameraGranted = granted }
 
     val toggleMonitoring: (Boolean) -> Unit = { enable ->
         if (!enable) {
@@ -129,6 +148,61 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
         ) { Text("Battery settings (set Vayora to Unrestricted)") }
 
         Text(
+            "Camera evidence",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 6.dp)
+        )
+        CapabilityCard(
+            "Camera permission",
+            if (cameraGranted) "Granted" else "Not granted",
+            if (cameraGranted) Tone.GOOD else Tone.WARN,
+            "Photos use the front camera and are stored privately on this phone until " +
+                "they upload to your Google Drive."
+        )
+        if (!cameraGranted) {
+            Button(
+                onClick = { cameraLauncher.launch(Manifest.permission.CAMERA) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Allow camera") }
+        }
+        SettingCard(
+            title = "Photo after wrong Vayora passcode",
+            subtitle = "Takes a photo from the second wrong attempt. Shown on this lock screen.",
+            checked = evidence.captureOnAppFail,
+            onChange = { vm.setCaptureOnAppFail(it) }
+        )
+        SettingCard(
+            title = "Photo after failed phone unlock",
+            subtitle = "Needs failed-attempt detection and notifications. Opens a visible " +
+                "Vayora screen over your lock screen from the second failed attempt. " +
+                "Android may not allow this on every phone, so test it below.",
+            checked = evidence.captureOnSystemFail,
+            onChange = { vm.setCaptureOnSystemFail(it) }
+        )
+        Button(
+            onClick = {
+                scope.launch {
+                    testing = true
+                    val result = vm.testPhoto(context, owner)
+                    testMessage = describe(result)
+                    testing = false
+                }
+            },
+            enabled = cameraGranted && !testing,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (testing) "Taking photo..." else "Take test photo now") }
+        OutlinedButton(
+            onClick = {
+                vm.scheduleLockScreenTest()
+                testMessage = "Test started. Lock your phone now. In about 15 seconds a " +
+                    "Vayora screen should appear over the lock screen and take a photo."
+            },
+            enabled = cameraGranted,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Test lock-screen photo (lock phone within 15 s)") }
+        testMessage?.let { Panel("Test result", it) }
+
+        Text(
             "What Android allows",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 6.dp)
@@ -173,6 +247,14 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
                 "cannot silently photograph an unlock."
         )
     }
+}
+
+private fun describe(result: CaptureResult): String = when (result) {
+    CaptureResult.SUCCESS ->
+        "Photo recorded. Open Photo Gallery to see it. It uploads when you are online."
+    CaptureResult.NO_PERMISSION -> "Camera permission is not granted."
+    CaptureResult.NO_CAMERA -> "This phone has no usable front camera."
+    CaptureResult.FAILED -> "The camera could not take the photo. Try again."
 }
 
 @Composable

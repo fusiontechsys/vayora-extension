@@ -4,6 +4,8 @@ import android.app.admin.DeviceAdminReceiver
 import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
+import com.vayora.extension.VayoraApp
+import com.vayora.extension.evidence.FailedUnlockCapture
 
 class VayoraAdminReceiver : DeviceAdminReceiver() {
 
@@ -19,12 +21,18 @@ class VayoraAdminReceiver : DeviceAdminReceiver() {
         } else {
             "Incorrect lock-screen credential."
         }
+        val app = context.applicationContext as VayoraApp
+        val wantsPhoto = app.evidenceCoordinator.settings.state.value.captureOnSystemFail &&
+            (attempts < 0 || attempts >= 2)
         EventRecorder.record(
             context,
             EventType.FAILED_AUTH,
             details,
             syncNow = true,
-            pending = goAsync()
+            pending = goAsync(),
+            onRecorded = { eventId ->
+                if (wantsPhoto) FailedUnlockCapture.trigger(app, eventId)
+            }
         )
     }
 

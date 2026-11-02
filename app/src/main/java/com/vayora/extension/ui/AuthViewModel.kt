@@ -30,7 +30,10 @@ data class AuthUi(
     val busy: Boolean = false
 )
 
-class AuthViewModel(private val manager: PasscodeManager) : ViewModel() {
+class AuthViewModel(
+    private val manager: PasscodeManager,
+    private val onWrongPasscode: (Int) -> Unit = {}
+) : ViewModel() {
 
     private val _ui = MutableStateFlow(
         AuthUi(if (manager.isSet()) Stage.LOCKED else Stage.SETUP)
@@ -162,6 +165,7 @@ class AuthViewModel(private val manager: PasscodeManager) : ViewModel() {
                         it.copy(busy = false, filled = 0, message = "Incorrect passcode")
                     }
                     refreshLock()
+                    onWrongPasscode(result.failures)
                 }
                 is VerifyResult.Locked -> {
                     _ui.update { it.copy(busy = false, filled = 0, message = null) }
@@ -202,9 +206,12 @@ class AuthViewModel(private val manager: PasscodeManager) : ViewModel() {
     }
 
     companion object {
-        fun factory(manager: PasscodeManager): ViewModelProvider.Factory =
+        fun factory(
+            manager: PasscodeManager,
+            onWrongPasscode: (Int) -> Unit = {}
+        ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { AuthViewModel(manager) }
+                initializer { AuthViewModel(manager, onWrongPasscode) }
             }
     }
 }

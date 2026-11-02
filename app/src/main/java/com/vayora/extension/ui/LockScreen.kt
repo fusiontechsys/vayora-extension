@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,12 +31,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.vayora.extension.VayoraApp
+import com.vayora.extension.evidence.CaptureResult
 import com.vayora.extension.ui.theme.Blue300
 import com.vayora.extension.ui.theme.Blue500
 import com.vayora.extension.ui.theme.Navy600
+import com.vayora.extension.ui.theme.Warning
+import kotlinx.coroutines.delay
 
 private fun formatCountdown(seconds: Long): String {
     val m = seconds / 60
@@ -46,6 +53,21 @@ private fun formatCountdown(seconds: Long): String {
 @Composable
 fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
     var showForgot by remember { mutableStateOf(false) }
+    var captureNote by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+
+    LaunchedEffect(Unit) {
+        val app = context.applicationContext as VayoraApp
+        app.evidenceCoordinator.requests.collect { eventId ->
+            val result = app.evidenceCoordinator.capture(context, owner, eventId)
+            if (result == CaptureResult.SUCCESS) {
+                captureNote = "Security photo recorded"
+                delay(4000)
+                captureNote = null
+            }
+        }
+    }
 
     val titleAndSubtitle: Pair<String, String> = when (ui.stage) {
         Stage.SETUP -> "Create your passcode" to "Choose a six-digit passcode"
@@ -111,7 +133,14 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
         )
         Spacer(Modifier.height(20.dp))
         PinDots(ui.filled)
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(8.dp))
+        Text(
+            captureNote ?: "",
+            style = MaterialTheme.typography.bodySmall,
+            color = Warning,
+            modifier = Modifier.heightIn(min = 20.dp)
+        )
+        Spacer(Modifier.height(16.dp))
         Keypad(
             enabled = !ui.busy && ui.lockSeconds <= 0,
             onDigit = { auth.onDigit(it) },

@@ -22,7 +22,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private val authViewModel: AuthViewModel by viewModels {
-        AuthViewModel.factory((application as VayoraApp).passcodeManager)
+        val app = application as VayoraApp
+        AuthViewModel.factory(app.passcodeManager) { failures ->
+            app.evidenceCoordinator.onWrongPasscode(failures)
+        }
     }
 
     private val cloudViewModel: CloudViewModel by viewModels {

@@ -6,6 +6,7 @@ import com.vayora.extension.cloud.SyncManager
 import com.vayora.extension.cloud.SyncScheduler
 import com.vayora.extension.data.SecurityRepository
 import com.vayora.extension.data.VayoraDatabase
+import com.vayora.extension.evidence.EvidenceCoordinator
 import com.vayora.extension.monitor.MonitorSettings
 import com.vayora.extension.security.PasscodeManager
 
@@ -24,6 +25,9 @@ class VayoraApp : Application() {
     }
     val monitorSettings: MonitorSettings by lazy {
         MonitorSettings(this)
+    }
+    val evidenceCoordinator: EvidenceCoordinator by lazy {
+        EvidenceCoordinator(this)
     }
 
     override fun onCreate() {
