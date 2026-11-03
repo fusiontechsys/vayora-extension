@@ -1,52 +1,82 @@
-name: Build Sentinel APK
-
+name: Build Vayora APK
 on:
   push:
-    branches: [ main, master ]
   workflow_dispatch:
-
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Install Android SDK packages
+          java-version: 17
+      - name: Unzip uploaded zips
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
-
-      - name: Create signing keystore (only if you have not committed one)
+          for z in vayora-*.zip sentinel-*.zip; do
+            [ -f "$z" ] || continue
+            unzip -o "$z" -x '.github/*'
+            rm -f "$z"
+            echo "Unpacked $z"
+          done
+      - name: Expand bundles
+        run: |
+          python3 - <<'PY'
+          import os, re, glob
+          applied = set(open('.applied').read().split()) if os.path.exists('.applied') else set()
+          def flush(path, lines):
+              if path is None:
+                  return
+              d = os.path.dirname(path)
+              if d:
+                  os.makedirs(d, exist_ok=True)
+              with open(path, 'w', newline='\n') as f:
+                  f.write('\n'.join(lines).strip('\n') + '\n')
+          for b in sorted(glob.glob('bundles/*.txt')):
+              n = os.path.basename(b)
+              if n in applied:
+                  continue
+              path = None
+              lines = []
+              text = open(b, encoding='utf-8').read().replace('\r', '')
+              for line in text.split('\n'):
+                  m = re.match(r'^=====FILE: (.+?)=====\s*$', line)
+                  if m:
+                      flush(path, lines)
+                      path = m.group(1).strip()
+                      lines = []
+                  else:
+                      lines.append(line)
+              flush(path, lines)
+              with open('.applied', 'a') as f:
+                  f.write(n + '\n')
+              print('Applied', n)
+          PY
+      - name: Keystore and commit generated files
         run: |
           mkdir -p keystore
           if [ ! -f keystore/vayora.jks ]; then
-            keytool -genkeypair -v -keystore keystore/vayora.jks -storetype JKS \
-              -alias vayora -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass vayora123 -keypass vayora123 \
-              -dname "CN=Sentinel, OU=Vayora, O=Vayora, C=IN"
+            keytool -genkeypair -keystore keystore/vayora.jks -storepass vayora123 -keypass vayora123 -alias vayora -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Vayora Extension, O=Vayora, C=IN"
           fi
-
+          git config user.name "vayora-bot"
+          git config user.email "vayora-bot@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Apply bundles and keystore"
+            git push
+          fi
+      - name: Show signing fingerprints
+        run: |
+          echo "### Signing fingerprints" >> "$GITHUB_STEP_SUMMARY"
+          keytool -list -v -keystore keystore/vayora.jks -storepass vayora123 -alias vayora | grep -E "SHA1|SHA256" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
       - name: Build release APK
         run: gradle assembleRelease --no-daemon --stacktrace
-
-      - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk Sentinel.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: Sentinel-APK
-          path: Sentinel.apk
+          name: Vayora-Extension-APK
+          path: app/build/outputs/apk/release/*.apk
