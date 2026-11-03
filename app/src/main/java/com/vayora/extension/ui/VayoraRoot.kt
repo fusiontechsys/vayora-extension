@@ -1,5 +1,8 @@
 package com.vayora.extension.ui
 
+import androidx.compose.foundation.BorderStroke
+import com.vayora.extension.ui.theme.ThemeSettings
+import androidx.compose.foundation.layout.imePadding
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +42,8 @@ fun VayoraRoot(
     cloud: CloudViewModel,
     gallery: GalleryViewModel,
     monitor: MonitorViewModel,
-    recovery: RecoveryViewModel
+    recovery: RecoveryViewModel,
+    themeSettings: ThemeSettings
 ) {
     val authUi by auth.ui.collectAsStateWithLifecycle()
 
@@ -47,9 +51,9 @@ fun VayoraRoot(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Box(Modifier.systemBarsPadding()) {
+        Box(Modifier.systemBarsPadding().imePadding()) {
             when (authUi.stage) {
-                Stage.UNLOCKED -> DashboardHost(dashboard, auth, cloud, gallery, monitor, recovery)
+                Stage.UNLOCKED -> DashboardHost(dashboard, auth, cloud, gallery, monitor, recovery, themeSettings)
                 Stage.RECOVERY -> RecoveryScreen(recovery, auth)
                 else -> LockScreen(authUi, auth)
             }
@@ -64,9 +68,11 @@ private fun DashboardHost(
     cloud: CloudViewModel,
     gallery: GalleryViewModel,
     monitor: MonitorViewModel,
-    recovery: RecoveryViewModel
+    recovery: RecoveryViewModel,
+    themeSettings: ThemeSettings
 ) {
     val state by dashboard.state.collectAsStateWithLifecycle()
+    val themeMode by themeSettings.mode.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val section = Sections.firstOrNull { it.title == selected }
 
@@ -103,6 +109,8 @@ private fun DashboardHost(
                 RecoverySettingsScreen(recovery) { selected = null }
             } else if (section.title == "Application Settings") {
                 AppSettingsScreen(
+                    themeMode = themeMode,
+                    onThemeMode = { themeSettings.setMode(it) },
                     onBack = { selected = null },
                     onSecureLogout = {
                         cloud.disconnect()
@@ -122,9 +130,10 @@ private fun RecoveryBanner(onSetUp: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 24.dp, vertical = 10.dp),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -141,7 +150,7 @@ private fun RecoveryBanner(onSetUp: () -> Unit) {
 
 @Composable
 fun SectionScreen(section: Section, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
+    Column(Modifier.fillMaxSize().padding(24.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

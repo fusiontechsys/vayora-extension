@@ -1,5 +1,6 @@
 package com.vayora.extension.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -95,8 +96,8 @@ fun RecoveryScreen(vm: RecoveryViewModel, auth: AuthViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Text("Recover passcode", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
 
@@ -110,7 +111,7 @@ fun RecoveryScreen(vm: RecoveryViewModel, auth: AuthViewModel) {
                     "recovery phrase."
             )
             ui.message?.let { Panel("Problem", it, true) }
-            Button(
+            VButton(
                 onClick = verifyWithGoogle,
                 enabled = !ui.busy,
                 modifier = Modifier.fillMaxWidth()
@@ -132,6 +133,7 @@ fun RecoveryScreen(vm: RecoveryViewModel, auth: AuthViewModel) {
                 ui.message?.let { Panel("Problem", it, true) }
             }
             OutlinedTextField(
+            shape = RoundedCornerShape(18.dp),
                 value = phrase,
                 onValueChange = { phrase = it },
                 label = { Text("Recovery phrase") },
@@ -140,7 +142,7 @@ fun RecoveryScreen(vm: RecoveryViewModel, auth: AuthViewModel) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth()
             )
-            Button(
+            VButton(
                 onClick = {
                     val entered = phrase
                     phrase = ""

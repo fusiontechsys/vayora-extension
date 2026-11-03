@@ -1,5 +1,6 @@
 package com.vayora.extension.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,8 +35,8 @@ fun PasscodeSettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
@@ -58,10 +59,10 @@ fun PasscodeSettingsScreen(
             "5 wrong attempts: 30 seconds\n6: 1 minute\n7: 5 minutes\n" +
                 "8: 15 minutes\n9: 1 hour\n10 or more: 24 hours"
         )
-        Button(onClick = onChange, modifier = Modifier.fillMaxWidth()) {
+        VButton(onClick = onChange, modifier = Modifier.fillMaxWidth()) {
             Text("Change passcode")
         }
-        OutlinedButton(onClick = onLockNow, modifier = Modifier.fillMaxWidth()) {
+        VOutlinedButton(onClick = onLockNow, modifier = Modifier.fillMaxWidth()) {
             Text("Lock now")
         }
     }
@@ -71,10 +72,11 @@ fun PasscodeSettingsScreen(
 private fun InfoCard(title: String, body: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(
                 body,

@@ -1,5 +1,6 @@
 package com.vayora.extension
 
+import com.vayora.extension.ui.theme.ThemeSettings
 import android.app.Application
 import com.vayora.extension.cloud.DriveStateStore
 import com.vayora.extension.cloud.SyncManager
@@ -20,6 +21,9 @@ class VayoraApp : Application() {
     }
     val recoveryManager: RecoveryManager by lazy {
         RecoveryManager(this)
+    }
+    val themeSettings: ThemeSettings by lazy {
+        ThemeSettings(this)
     }
     val driveState: DriveStateStore by lazy {
         DriveStateStore(this)

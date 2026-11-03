@@ -1,5 +1,6 @@
 package com.vayora.extension.ui
 
+import androidx.compose.foundation.BorderStroke
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -59,7 +60,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vayora.extension.ui.theme.Danger
-import com.vayora.extension.ui.theme.Navy600
+import com.vayora.extension.ui.theme.Raised
 import com.vayora.extension.ui.theme.Success
 import com.vayora.extension.ui.theme.Warning
 
@@ -98,9 +99,9 @@ fun PhotoGalleryScreen(vm: GalleryViewModel, onBack: () -> Unit) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 ScreenHeader("Photo Gallery", onBack)
@@ -108,9 +109,9 @@ fun PhotoGalleryScreen(vm: GalleryViewModel, onBack: () -> Unit) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedButton(onClick = { vm.refresh() }, enabled = !cloud.loading) {
+                    VOutlinedButton(onClick = { vm.refresh() }, enabled = !cloud.loading) {
                         Text(if (cloud.loading) "Refreshing..." else "Refresh")
                     }
                     Text(
@@ -139,7 +140,7 @@ fun PhotoGalleryScreen(vm: GalleryViewModel, onBack: () -> Unit) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         FilterChip(
                             selected = filter == null,
@@ -160,7 +161,7 @@ fun PhotoGalleryScreen(vm: GalleryViewModel, onBack: () -> Unit) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Panel(
                         "No evidence photos yet",
-                        "Photos captured by Vayora Extension appear here after they upload " +
+                        "Photos captured by Sentinel appear here after they upload " +
                             "to your private Google Drive folder."
                     )
                 }
@@ -207,15 +208,16 @@ private fun PhotoCell(vm: GalleryViewModel, item: GalleryItem, onClick: () -> Un
     }
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .background(Navy600),
+                    .background(Raised),
                 contentAlignment = Alignment.Center
             ) {
                 val bitmap = thumb.bitmap
@@ -239,7 +241,7 @@ private fun PhotoCell(vm: GalleryViewModel, item: GalleryItem, onClick: () -> Un
                     )
                 }
             }
-            Column(Modifier.padding(10.dp)) {
+            Column(Modifier.padding(14.dp)) {
                 Text(item.category, style = MaterialTheme.typography.titleMedium)
                 Text(
                     formatTimestamp(item.time),
@@ -269,7 +271,7 @@ private fun PhotoViewer(
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onClose) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -290,9 +292,9 @@ private fun PhotoViewer(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(vertical = 12.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Navy600),
+                .padding(vertical = 16.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Raised),
             contentAlignment = Alignment.Center
         ) {
             val bitmap = image.bitmap

@@ -1,5 +1,6 @@
 package com.vayora.extension.ui
 
+import androidx.compose.foundation.BorderStroke
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -110,8 +111,8 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         ScreenHeader("Device Security", onBack)
 
@@ -133,7 +134,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
         )
 
         if (adminActive) {
-            OutlinedButton(
+            VOutlinedButton(
                 onClick = {
                     AdminHelper.remove(context)
                     adminActive = false
@@ -141,12 +142,12 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Turn off failed-attempt detection") }
         } else {
-            Button(
+            VButton(
                 onClick = { context.startActivity(AdminHelper.requestIntent(context)) },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Turn on failed-attempt detection") }
         }
-        OutlinedButton(
+        VOutlinedButton(
             onClick = {
                 try {
                     context.startActivity(
@@ -157,7 +158,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
                 }
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Battery settings (set Vayora to Unrestricted)") }
+        ) { Text("Battery settings (set Sentinel to Unrestricted)") }
 
         Text(
             "Camera evidence",
@@ -173,7 +174,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
                 "dot during every capture."
         )
         if (!cameraGranted) {
-            Button(
+            VButton(
                 onClick = { cameraLauncher.launch(Manifest.permission.CAMERA) },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Allow camera") }
@@ -184,7 +185,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             if (cameraActive) Tone.GOOD else Tone.WARN,
             "Becomes ready when monitoring is on, the camera is allowed and a photo " +
                 "option below is enabled, after you open this app. After a phone restart, " +
-                "open Vayora once to make it ready again."
+                "open Sentinel once to make it ready again."
         )
         CapabilityCard(
             "Fallback capture screen",
@@ -194,7 +195,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
                 "visible capture screen instead. That needs \"Display over other apps\"."
         )
         if (!overlayGranted) {
-            OutlinedButton(
+            VOutlinedButton(
                 onClick = {
                     try {
                         context.startActivity(
@@ -226,7 +227,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             )
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 GapOptions.forEach { option ->
                     FilterChip(
@@ -245,13 +246,13 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             onChange = { vm.setCaptureOnSystemFail(it) }
         )
         SettingCard(
-            title = "Photo after every wrong Vayora passcode",
+            title = "Photo after every wrong Sentinel passcode",
             subtitle = "Taken on this lock screen, at most one every 8 seconds.",
             checked = evidence.captureOnAppFail,
             onChange = { vm.setCaptureOnAppFail(it) }
         )
 
-        Button(
+        VButton(
             onClick = {
                 scope.launch {
                     testing = true
@@ -263,7 +264,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             enabled = cameraGranted && !testing,
             modifier = Modifier.fillMaxWidth()
         ) { Text(if (testing) "Taking photo..." else "Take test photo now") }
-        OutlinedButton(
+        VOutlinedButton(
             onClick = {
                 vm.scheduleLockScreenTest()
                 testMessage = "Test started. Lock your phone now. In about 15 seconds a " +
@@ -331,11 +332,12 @@ private fun SettingCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(
                     subtitle,
@@ -357,10 +359,11 @@ private fun CapabilityCard(name: String, status: String, tone: Tone, note: Strin
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     name,

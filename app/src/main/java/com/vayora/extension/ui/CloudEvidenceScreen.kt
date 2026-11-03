@@ -35,8 +35,8 @@ fun CloudEvidenceScreen(vm: CloudViewModel, onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         ScreenHeader("Cloud Evidence", onBack)
         Panel(
@@ -54,12 +54,12 @@ fun CloudEvidenceScreen(vm: CloudViewModel, onBack: () -> Unit) {
         drive.lastError?.let { Panel("Needs attention", it, true) }
         message?.let { Panel("Status", it) }
 
-        Button(
+        VButton(
             onClick = { vm.syncNow() },
             enabled = connected,
             modifier = Modifier.fillMaxWidth()
         ) { Text("Sync now") }
-        OutlinedButton(
+        VOutlinedButton(
             onClick = { vm.recordTestEvent() },
             enabled = connected,
             modifier = Modifier.fillMaxWidth()

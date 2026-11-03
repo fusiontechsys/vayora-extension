@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.vayora.extension.VayoraApp
-import com.vayora.extension.ui.theme.Blue300
+import com.vayora.extension.ui.theme.AccentSoft
 import com.vayora.extension.ui.theme.VayoraTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -36,7 +36,7 @@ class CaptureActivity : ComponentActivity() {
 
         val eventId = intent.getLongExtra(EXTRA_EVENT_ID, -1L)
         setContent {
-            VayoraTheme {
+            VayoraTheme((application as VayoraApp).themeSettings.mode.value) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -47,9 +47,9 @@ class CaptureActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "VAYORA EXTENSION",
+                            "SENTINEL BY VAYORA",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Blue300
+                            color = AccentSoft
                         )
                         Text(
                             "Security photo being recorded",

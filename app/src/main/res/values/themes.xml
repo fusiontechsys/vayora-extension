@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Vayora" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/vayora_navy</item>
-        <item name="android:statusBarColor">@color/vayora_navy</item>
-        <item name="android:navigationBarColor">@color/vayora_navy</item>
+    <style name="Theme.Vayora" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/sentinel_bg_light</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
     </style>
 </resources>

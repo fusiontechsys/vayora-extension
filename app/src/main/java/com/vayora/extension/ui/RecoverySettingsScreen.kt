@@ -1,5 +1,6 @@
 package com.vayora.extension.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,8 +42,8 @@ fun RecoverySettingsScreen(vm: RecoveryViewModel, onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         ScreenHeader("Recovery Settings", onBack)
         Panel(
@@ -64,6 +65,7 @@ fun RecoverySettingsScreen(vm: RecoveryViewModel, onBack: () -> Unit) {
 
         if (hasPhrase) {
             OutlinedTextField(
+            shape = RoundedCornerShape(18.dp),
                 value = current,
                 onValueChange = { current = it },
                 label = { Text("Current recovery phrase") },
@@ -74,6 +76,7 @@ fun RecoverySettingsScreen(vm: RecoveryViewModel, onBack: () -> Unit) {
             )
         }
         OutlinedTextField(
+            shape = RoundedCornerShape(18.dp),
             value = newPhrase,
             onValueChange = { newPhrase = it },
             label = { Text(if (hasPhrase) "New recovery phrase" else "Recovery phrase") },
@@ -83,6 +86,7 @@ fun RecoverySettingsScreen(vm: RecoveryViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
+            shape = RoundedCornerShape(18.dp),
             value = confirm,
             onValueChange = { confirm = it },
             label = { Text("Repeat recovery phrase") },
@@ -95,7 +99,7 @@ fun RecoverySettingsScreen(vm: RecoveryViewModel, onBack: () -> Unit) {
         if (saved) {
             Panel("Saved", "Your recovery phrase is saved. Keep a written copy somewhere safe.")
         }
-        Button(
+        VButton(
             onClick = {
                 scope.launch {
                     busy = true

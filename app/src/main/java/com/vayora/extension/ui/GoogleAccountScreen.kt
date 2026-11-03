@@ -93,14 +93,14 @@ fun GoogleAccountScreen(vm: CloudViewModel, onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         ScreenHeader("Google Account", onBack)
         Panel("Registered account", drive.email ?: "No account registered yet")
         Panel(
             "Permission",
-            "Vayora Extension asks only for the Google Drive drive.file permission. " +
+            "Sentinel by Vayora asks only for the Google Drive drive.file permission. " +
                 "It can see only files and folders it creates itself, never the rest of " +
                 "your Drive. Your Google password is never seen or stored by this app."
         )
@@ -108,18 +108,18 @@ fun GoogleAccountScreen(vm: CloudViewModel, onBack: () -> Unit) {
         message?.let { Panel("Status", it) }
 
         if (drive.email == null) {
-            Button(
+            VButton(
                 onClick = connect,
                 enabled = !busy,
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (busy) "Connecting..." else "Connect Google account") }
         } else {
-            Button(
+            VButton(
                 onClick = connect,
                 enabled = !busy,
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (busy) "Working..." else "Reconnect account") }
-            OutlinedButton(
+            VOutlinedButton(
                 onClick = { confirmDisconnect = true },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Disconnect") }
@@ -134,7 +134,7 @@ fun GoogleAccountScreen(vm: CloudViewModel, onBack: () -> Unit) {
                 Text(
                     "Uploads stop and the registered account is forgotten on this phone. " +
                         "Files already in Google Drive are not deleted. To fully revoke " +
-                        "access, remove Vayora Extension in your Google Account permissions."
+                        "access, remove Sentinel by Vayora in your Google Account permissions."
                 )
             },
             confirmButton = {

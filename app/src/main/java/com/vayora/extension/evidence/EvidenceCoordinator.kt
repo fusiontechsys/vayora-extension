@@ -36,12 +36,12 @@ class EvidenceCoordinator(private val app: VayoraApp) {
     @Volatile
     private var lastSystemCapture = 0L
 
-    /** Wrong Vayora passcode: record it and ask the visible lock screen for a photo. */
+    /** Wrong Sentinel passcode: record it and ask the visible lock screen for a photo. */
     fun onWrongPasscode(failures: Int) {
         scope.launch {
             val eventId = app.repository.recordEvent(
                 EventType.WRONG_PASSCODE,
-                "Incorrect Vayora Extension passcode. Consecutive wrong attempts: $failures",
+                "Incorrect Sentinel passcode. Consecutive wrong attempts: $failures",
                 DeviceStateReader.describe(app)
             )
             SyncScheduler.syncSoon(app)

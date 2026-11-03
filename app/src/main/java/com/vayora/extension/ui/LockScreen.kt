@@ -1,5 +1,7 @@
 package com.vayora.extension.ui
 
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,9 +39,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.vayora.extension.VayoraApp
 import com.vayora.extension.evidence.CaptureResult
-import com.vayora.extension.ui.theme.Blue300
-import com.vayora.extension.ui.theme.Blue500
-import com.vayora.extension.ui.theme.Navy600
+import com.vayora.extension.ui.theme.AccentSoft
+import com.vayora.extension.ui.theme.Accent
+import com.vayora.extension.ui.theme.Raised
 import com.vayora.extension.ui.theme.Warning
 import kotlinx.coroutines.delay
 
@@ -70,7 +72,7 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
     val titleAndSubtitle: Pair<String, String> = when (ui.stage) {
         Stage.SETUP -> "Create your passcode" to "Choose a six-digit passcode"
         Stage.SETUP_CONFIRM -> "Confirm your passcode" to "Enter the same six digits again"
-        Stage.LOCKED -> "Enter passcode" to "Vayora Extension is locked"
+        Stage.LOCKED -> "Enter passcode" to "Sentinel by Vayora is locked"
         Stage.CHANGE_CURRENT -> "Current passcode" to "Enter your current passcode"
         Stage.CHANGE_NEW -> "New passcode" to "Choose a new six-digit passcode"
         Stage.CHANGE_CONFIRM -> "Confirm new passcode" to "Enter the new digits again"
@@ -99,31 +101,12 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 28.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(24.dp))
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(Navy600),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Filled.Lock,
-                contentDescription = null,
-                tint = Blue500,
-                modifier = Modifier.size(30.dp)
-            )
-        }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            "VAYORA EXTENSION",
-            style = MaterialTheme.typography.labelMedium,
-            color = Blue300
-        )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(40.dp))
+        SentinelLogo(Modifier.width(300.dp).aspectRatio(LogoAspect))
+        Spacer(Modifier.height(44.dp))
         Text(titleAndSubtitle.first, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         Text(
@@ -169,13 +152,13 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
 
 @Composable
 private fun PinDots(filled: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
         repeat(6) { index ->
             Box(
                 modifier = Modifier
-                    .size(14.dp)
+                    .size(16.dp)
                     .clip(CircleShape)
-                    .background(if (index < filled) Blue500 else Navy600)
+                    .background(if (index < filled) Accent else Raised)
             )
         }
     }
@@ -188,18 +171,18 @@ private fun Keypad(
     onDelete: () -> Unit
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         listOf("123", "456", "789").forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
                 row.forEach { ch ->
                     KeyButton(ch.toString(), enabled) { onDigit(ch) }
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            Spacer(Modifier.size(72.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+            Spacer(Modifier.size(78.dp))
             KeyButton("0", enabled) { onDigit('0') }
             KeyButton("\u232B", enabled) { onDelete() }
         }
@@ -210,7 +193,7 @@ private fun Keypad(
 private fun KeyButton(label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(72.dp)
+            .size(78.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surface)
             .clickable(enabled = enabled, onClick = onClick),
