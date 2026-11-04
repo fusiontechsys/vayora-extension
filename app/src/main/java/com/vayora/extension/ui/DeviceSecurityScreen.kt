@@ -191,7 +191,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             "Fallback capture screen",
             if (overlayGranted) "Allowed" else "Not allowed",
             if (overlayGranted) Tone.GOOD else Tone.WARN,
-            "If the background service cannot use the camera, Vayora briefly shows a " +
+            "If the background service cannot use the camera, Sentinel briefly shows a " +
                 "visible capture screen instead. That needs \"Display over other apps\"."
         )
         if (!overlayGranted) {
@@ -268,7 +268,7 @@ fun DeviceSecurityScreen(vm: MonitorViewModel, onBack: () -> Unit) {
             onClick = {
                 vm.scheduleLockScreenTest()
                 testMessage = "Test started. Lock your phone now. In about 15 seconds a " +
-                    "Vayora screen should appear over the lock screen and take a photo."
+                    "Sentinel screen should appear over the lock screen and take a photo."
             },
             enabled = cameraGranted,
             modifier = Modifier.fillMaxWidth()

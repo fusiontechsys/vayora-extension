@@ -33,9 +33,10 @@ class DriveClient(private val token: String) {
     fun ensureFolder(existingId: String?): String {
         if (existingId != null) {
             try {
-                val text = call("GET", "$API/files/$existingId?fields=id,trashed")
+                val text = call("GET", "$API/files/$existingId?fields=id,trashed,name")
                 val json = JSONObject(text)
                 if (!json.optBoolean("trashed", false)) {
+                    if (json.optString("name", "") != FOLDER_NAME) renameFolder(existingId)
                     return json.getString("id")
                 }
             } catch (e: DriveException) {
@@ -137,6 +138,21 @@ class DriveClient(private val token: String) {
         }
     }
 
+    private fun renameFolder(id: String) {
+        try {
+            val body = JSONObject().put("name", FOLDER_NAME)
+            callBytes(
+                "POST",
+                "$API/files/$id?fields=id",
+                "application/json; charset=UTF-8",
+                body.toString().toByteArray(Charsets.UTF_8),
+                mapOf("X-HTTP-Method-Override" to "PATCH")
+            )
+        } catch (e: IOException) {
+            // keep the old folder name; renaming is cosmetic
+        }
+    }
+
     private fun call(
         method: String,
         url: String,
@@ -148,7 +164,8 @@ class DriveClient(private val token: String) {
         method: String,
         url: String,
         contentType: String? = null,
-        body: ByteArray? = null
+        body: ByteArray? = null,
+        extraHeaders: Map<String, String> = emptyMap()
     ): ByteArray {
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
@@ -156,6 +173,9 @@ class DriveClient(private val token: String) {
             conn.connectTimeout = 20_000
             conn.readTimeout = 60_000
             conn.setRequestProperty("Authorization", "Bearer $token")
+            for ((name, value) in extraHeaders) {
+                conn.setRequestProperty(name, value)
+            }
             if (body != null) {
                 conn.doOutput = true
                 if (contentType != null) {
@@ -188,7 +208,7 @@ class DriveClient(private val token: String) {
     }
 
     companion object {
-        const val FOLDER_NAME = "Vayora Extension Evidence"
+        const val FOLDER_NAME = "Sentinel Evidence"
         private const val API = "https://www.googleapis.com/drive/v3"
         private const val UPLOAD_API = "https://www.googleapis.com/upload/drive/v3"
     }

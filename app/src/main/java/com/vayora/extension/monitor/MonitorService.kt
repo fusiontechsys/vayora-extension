@@ -144,7 +144,7 @@ class MonitorService : Service() {
             "Security monitoring",
             NotificationManager.IMPORTANCE_LOW
         )
-        channel.description = "Shown while Sentinel by Vayora monitors device security events"
+        channel.description = "Shown while Sentinel monitors device security events"
         channel.lockscreenVisibility = Notification.VISIBILITY_SECRET
         manager.createNotificationChannel(channel)
     }
@@ -161,7 +161,7 @@ class MonitorService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_shield)
-            .setContentTitle("Sentinel by Vayora")
+            .setContentTitle("Sentinel")
             .setContentText("Device security monitoring is on")
             .setOngoing(true)
             .setContentIntent(pending)

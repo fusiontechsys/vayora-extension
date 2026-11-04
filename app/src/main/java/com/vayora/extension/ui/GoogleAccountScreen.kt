@@ -100,7 +100,7 @@ fun GoogleAccountScreen(vm: CloudViewModel, onBack: () -> Unit) {
         Panel("Registered account", drive.email ?: "No account registered yet")
         Panel(
             "Permission",
-            "Sentinel by Vayora asks only for the Google Drive drive.file permission. " +
+            "Sentinel asks only for the Google Drive drive.file permission. " +
                 "It can see only files and folders it creates itself, never the rest of " +
                 "your Drive. Your Google password is never seen or stored by this app."
         )
@@ -134,7 +134,7 @@ fun GoogleAccountScreen(vm: CloudViewModel, onBack: () -> Unit) {
                 Text(
                     "Uploads stop and the registered account is forgotten on this phone. " +
                         "Files already in Google Drive are not deleted. To fully revoke " +
-                        "access, remove Sentinel by Vayora in your Google Account permissions."
+                        "access, remove Sentinel in your Google Account permissions."
                 )
             },
             confirmButton = {

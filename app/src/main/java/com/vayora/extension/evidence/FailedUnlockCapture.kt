@@ -59,7 +59,7 @@ object FailedUnlockCapture {
         )
         val notification = NotificationCompat.Builder(app, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_shield)
-            .setContentTitle("Sentinel by Vayora")
+            .setContentTitle("Sentinel")
             .setContentText("Recording a security photo")
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

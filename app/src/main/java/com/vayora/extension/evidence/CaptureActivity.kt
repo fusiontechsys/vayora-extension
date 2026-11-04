@@ -47,7 +47,7 @@ class CaptureActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "SENTINEL BY VAYORA",
+                            "SENTINEL",
                             style = MaterialTheme.typography.labelMedium,
                             color = AccentSoft
                         )

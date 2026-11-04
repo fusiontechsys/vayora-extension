@@ -21,7 +21,7 @@ object AdminHelper {
             putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, component(context))
             putExtra(
                 DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                "Lets Sentinel by Vayora be told when a wrong lock-screen PIN, pattern or " +
+                "Lets Sentinel be told when a wrong lock-screen PIN, pattern or " +
                     "password is entered. It cannot lock, wipe or change anything on your phone."
             )
         }

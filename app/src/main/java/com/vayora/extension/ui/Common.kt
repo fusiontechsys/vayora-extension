@@ -34,13 +34,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Width divided by height of the Sentinel by Vayora logo image. */
+/** Width divided by height of the Sentinel logo image. */
 const val LogoAspect = 1770f / 441f
 
 fun formatTimestamp(ms: Long): String =
     SimpleDateFormat("dd MMM yyyy, HH:mm:ss", Locale.getDefault()).format(Date(ms))
 
-/** The full "Sentinel by Vayora" logo, in the variant that suits the current theme. */
+/** The full "Sentinel" logo, in the variant that suits the current theme. */
 @Composable
 fun SentinelLogo(modifier: Modifier = Modifier) {
     val dark = LocalSentinelPalette.current.isDark

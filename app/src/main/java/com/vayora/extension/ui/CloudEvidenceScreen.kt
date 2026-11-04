@@ -42,7 +42,7 @@ fun CloudEvidenceScreen(vm: CloudViewModel, onBack: () -> Unit) {
         Panel(
             "Google Drive",
             if (connected) {
-                "Connected as ${drive.email}\nFolder: Vayora Extension Evidence"
+                "Connected as ${drive.email}\nFolder: Sentinel Evidence"
             } else {
                 "Not connected. Open Google Account to connect."
             }

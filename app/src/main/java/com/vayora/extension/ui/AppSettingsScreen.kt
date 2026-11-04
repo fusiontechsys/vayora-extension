@@ -37,9 +37,9 @@ fun AppSettingsScreen(
     val context = LocalContext.current
     var confirm by remember { mutableStateOf(false) }
     val version = try {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0"
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "2.0"
     } catch (e: Exception) {
-        "1.0"
+        "2.0"
     }
 
     Column(
@@ -84,7 +84,7 @@ fun AppSettingsScreen(
             }
         }
 
-        Panel("Version", "Sentinel by Vayora $version")
+        Panel("Version", "Sentinel $version")
         Panel(
             "Local storage",
             "Evidence photos are encrypted with a key held in the Android Keystore before " +
@@ -101,7 +101,7 @@ fun AppSettingsScreen(
             "Permissions",
             "Camera for evidence photos, notifications for the monitoring indicator, and " +
                 "optional Device Admin and display-over-apps access for failed-attempt " +
-                "detection. To fully revoke Google access, remove Sentinel by Vayora in " +
+                "detection. To fully revoke Google access, remove Sentinel in " +
                 "your Google Account permissions."
         )
         VOutlinedButton(

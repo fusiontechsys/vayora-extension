@@ -72,7 +72,7 @@ fun LockScreen(ui: AuthUi, auth: AuthViewModel) {
     val titleAndSubtitle: Pair<String, String> = when (ui.stage) {
         Stage.SETUP -> "Create your passcode" to "Choose a six-digit passcode"
         Stage.SETUP_CONFIRM -> "Confirm your passcode" to "Enter the same six digits again"
-        Stage.LOCKED -> "Enter passcode" to "Sentinel by Vayora is locked"
+        Stage.LOCKED -> "Enter passcode" to "Sentinel is locked"
         Stage.CHANGE_CURRENT -> "Current passcode" to "Enter your current passcode"
         Stage.CHANGE_NEW -> "New passcode" to "Choose a new six-digit passcode"
         Stage.CHANGE_CONFIRM -> "Confirm new passcode" to "Enter the new digits again"
